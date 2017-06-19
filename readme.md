@@ -64,7 +64,7 @@ There are three tables within DynamoDB. ConversionID is the shared key between t
 Any lambda, if ffmpeg exits with status other than 1, trigger failed in dynamoDB & update SQS queue message visibility to 1
 
 ## TODO for mvp
-- get vweb up and dumping to correct bucket
+- get upload endpoint up and dumping to correct bucket
 - add sqs integration for first and last step (currently triggers from bucket)
 - dynamoDB reads/writes added to individual functions
 - Concat step functional testing & triggering off of dynamoDB.
@@ -75,15 +75,9 @@ Any lambda, if ffmpeg exits with status other than 1, trigger failed in dynamoDB
 ## TODO after mvp
 - set up expiration time on s3 buckets
 - developer documentation that includes how to alter the ffmpeg commands
-- decide if we want to break out audio during segment and recombine during concatsn s3 buckets
+- break out audio during segment and recombine during concat
 - update bundler script, build full tutorial on how to integrate FC
 - add support for converting audio files?
 - add support for status queue:
-    - MEDIASTATUS_NEW         = "New"
-    - MEDIASTATUS_WAITING     = "Waiting for encoder"
-    - MEDIASTATUS_DOWNLOADING = "Downloading"
-    - MEDIASTATUS_READY       = "Ready to process"
-    - MEDIASTATUS_PROCESSING  = "Processing"
-    - MEDIASTATUS_SAVING      = "Saving"
-    - MEDIASTATUS_FINISHED    = "Finished"
-    - MEDIASTATUS_ERROR       = "Error"
+- hopefully deprecate polling function in favor of triggering from SQS -
+  cmon amazon!
