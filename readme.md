@@ -89,6 +89,7 @@ There are three tables within DynamoDB. ConversionID is the shared key between t
 - hopefully deprecate polling function in favor of triggering from SQS -
   cmon amazon!
 - Make it easier for contributors to add support for alternate IIASPs (google and azure functions)
+- Add support for subtitles - break them out with the audio during segmentation
 - FAQ
 
 ## Maintainers
