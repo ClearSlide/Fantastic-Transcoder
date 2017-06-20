@@ -5,7 +5,7 @@ Fantastic transcoder is a video transcoder which utilizes massively parallel com
 This is an orchestrated collection of Lambda tasks. We use DynamoDB, SQS, and S3 for data structure, job tracking, and object storage respectively.
 
 ## Architecture Diagram
-[Architecture Diagram][diagram-link]
+![Architecture Diagram](https://github.com/ClearSlide/Fantastic-Transcoder/raw/master/FantasticTranscoder-v4.jpg)
 
 
 The steps are as follows:
@@ -86,5 +86,3 @@ Any lambda, if ffmpeg exits with status other than 1, trigger failed in dynamoDB
 - hopefully deprecate polling function in favor of triggering from SQS -
   cmon amazon!
 - Make it easier for contributors to add support for alternate IIASPs (google and azure functions)
-
-  [diagram-link]: https://github.com/ClearSlide/Fantastic-Transcoder/raw/master/FantasticTranscoder-v4.jpg
