@@ -65,8 +65,8 @@ There are three tables within DynamoDB. ConversionID is the shared key between t
 
 
 ## Failure Cases:
-Any lambda, if ffmpeg exits with status other than 1, trigger failed in dynamoDB & update SQS queue message visibility to 1
-If retries > 5 when accepting from SQS queue, send to deadletter queue instead. Configure cloudwatch alert on deadletter queue
+- Any lambda, if ffmpeg exits with status other than 1, trigger failed in dynamoDB & update SQS queue message visibility to 1
+- If retries > 5 when accepting from SQS queue, send to deadletter queue instead. Configure cloudwatch alert on deadletter queue
 
 ## TODO for mvp
 - get upload endpoint up and dumping to correct bucket
