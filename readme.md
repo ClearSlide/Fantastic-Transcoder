@@ -76,6 +76,7 @@ If retries > 5 when accepting from SQS queue, send to deadletter queue instead. 
 - encoding parameters logic - decide how much is necessary. 3 formats?
 - add SQS access to IAM role in terraform
 - make bundler fully operational - should create python virtualenv as well as bundle lambda functions
+- Add installation/implementation guide
 
 ## TODO after mvp
 - set up expiration time on s3 buckets
@@ -88,8 +89,13 @@ If retries > 5 when accepting from SQS queue, send to deadletter queue instead. 
 - hopefully deprecate polling function in favor of triggering from SQS -
   cmon amazon!
 - Make it easier for contributors to add support for alternate IIASPs (google and azure functions)
+- FAQ
 
+## Maintainers
+Current Maintainers:
+- Gabe Abinante (ClearSlide) - https://github.com/gabinante
 
+## Copyright
 Copyright 2017 ClearSlide, inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
