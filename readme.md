@@ -75,6 +75,7 @@ If retries > 5 when accepting from SQS queue, send to deadletter queue instead. 
 - Concat step functional testing & triggering off of dynamoDB.
 - encoding parameters logic - decide how much is necessary. 3 formats?
 - add SQS access to IAM role in terraform
+- make bundler fully operational - should create python virtualenv as well as bundle lambda functions
 
 ## TODO after mvp
 - set up expiration time on s3 buckets
