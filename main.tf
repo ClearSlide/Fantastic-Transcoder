@@ -172,6 +172,22 @@ resource "aws_sqs_queue" "ft_status_queue" {
   receive_wait_time_seconds = 10
 }
 
+# Cloudwatch alarm to alert on deadletter queue
+resource "aws_cloudwatch_metric_alarm" "FT_Deadletter_alarm" {
+  alarm_name                = "FT_Deadletter_alarm"
+  comparison_operator       = "GreaterThanOrEqualToThreshold"
+  evaluation_periods        = "2"
+  metric_name               = "QueueDepth"
+  namespace                 = "AWS/SQS"
+  period                    = "120"
+  statistic                 = "Average"
+  threshold                 = "1"
+  alarm_description         = "This Alarm will alert you if Fantastic Transcoder fails to convert a video 5 consecutive times."
+  dimensions {
+    QueueName = "ft_deadletter_queue"
+  }
+}
+
 # Lambda Functions
 resource "aws_lambda_function" "ft_poll_lambda" {
   filename         = "ft_poll.zip"
