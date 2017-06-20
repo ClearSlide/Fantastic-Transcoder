@@ -4,6 +4,10 @@ Fantastic transcoder is a video transcoder which utilizes massively parallel com
 
 This is an orchestrated collection of Lambda tasks. We use DynamoDB, SQS, and S3 for data structure, job tracking, and object storage respectively.
 
+## Architecture Diagram
+[![Architecture Diagram][diagram-link]]
+
+
 The steps are as follows:
 
 ## Lambda 0: Poll
@@ -65,19 +69,22 @@ Any lambda, if ffmpeg exits with status other than 1, trigger failed in dynamoDB
 
 ## TODO for mvp
 - get upload endpoint up and dumping to correct bucket
-- add sqs integration for first and last step (currently triggers from bucket)
+- add SQS integration for first and last step (currently triggers from bucket)
 - dynamoDB reads/writes added to individual functions
 - Concat step functional testing & triggering off of dynamoDB.
 - encoding parameters logic - decide how much is necessary. 3 formats?
 - add SQS access to IAM role in terraform
-- speak with legal about apache license
 
 ## TODO after mvp
 - set up expiration time on s3 buckets
 - developer documentation that includes how to alter the ffmpeg commands
 - break out audio during segment and recombine during concat
 - update bundler script, build full tutorial on how to integrate FC
+- Add frontend for example purposes?
 - add support for converting audio files?
 - add support for status queue:
 - hopefully deprecate polling function in favor of triggering from SQS -
   cmon amazon!
+- Make it easier for contributors to add support for alternate IIASPs (google and azure functions)
+
+  [diagram-link]: https://github.com/ClearSlide/Fantastic-Transcoder/raw/master/FantasticTranscoder-v4.jpg
