@@ -5,7 +5,7 @@ Fantastic transcoder is a video transcoder which utilizes massively parallel com
 This is an orchestrated collection of Lambda tasks. We use DynamoDB, SQS, and S3 for data structure, job tracking, and object storage respectively.
 
 ## Architecture Diagram
-[![Architecture Diagram][diagram-link]]
+[Architecture Diagram][diagram-link]
 
 
 The steps are as follows:
