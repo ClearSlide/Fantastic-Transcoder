@@ -1,5 +1,7 @@
 # Fantastic Transcoder
 
+## This project is a work in progress.
+
 Fantastic transcoder is a video transcoder which utilizes massively parallel compute to achieve ludicrous conversion speeds.
 
 This is an orchestrated collection of Lambda tasks. We use DynamoDB, SQS, and S3 for data structure, job tracking, and object storage respectively.
