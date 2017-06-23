@@ -11,6 +11,11 @@ resource "aws_dynamodb_table" "video_conversions" {
   }
 
   attribute {
+    name = "MessageID"
+    type = "S"
+  }
+
+  attribute {
     name = "Created"
     type = "N"
   }
@@ -21,7 +26,7 @@ resource "aws_dynamodb_table" "video_conversions" {
   }
 
   attribute {
-    name = "updated"
+    name = "Updated"
     type = "N"
   }
 

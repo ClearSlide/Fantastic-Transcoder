@@ -7,7 +7,7 @@ def lambda_handler(event, context):
     client = boto3.client('sqs')
     queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
     epochnow = int(time.time())
-
+    # Accept message from SQS
     message = client.receive_message(
         QueueUrl=queue,
         AttributeNames=[
@@ -27,12 +27,13 @@ def lambda_handler(event, context):
     db = boto3.resource('dynamodb')
     table = dynamodb.Table('FT_VideoConversions')
 
+    # TODO: This should be each because we can get multiple messages.
     # Check if this job has been done before.
     exists = table.get_item(hash_key=conversionID)
 
     # If we have not been here before, create a new row in DynamoDB. This triggers Lambda 2: Segment
     if exists is None:
-        write = table.put_item(
+        table.put_item(
            Item={
                 'ConversionID': conversionID,
                 'created': epochnow,
@@ -41,9 +42,9 @@ def lambda_handler(event, context):
         )
         print("PutItem succeeded:")
         print(json.dumps(response, indent=4, cls=DecimalEncoder))
-    # If we have been here before, increment retries.
-    else:
-        write = table.update_item(
+    # If we have been here before, increment retries. This still triggers convert
+    else if retries < 4:
+        table.update_item(
             Key={
                 'ConversionID': conversionID
             },
@@ -53,5 +54,13 @@ def lambda_handler(event, context):
             },
             'updated': epochnow
         )
-    # After incrementing retries, trigger lambda unless retries > 3
-    
+    else:
+    # If we've failed 3 times or are in some crazy unrecognizable state, move to deadletter queue
+
+        queue.delete_message(
+
+        )
+        statusqueue.put_message(
+        status: "failed"
+        
+        )

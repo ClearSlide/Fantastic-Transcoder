@@ -5,7 +5,7 @@ s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 
 def lambda_handler(event, context):
-
+    # TODO: replace s3 handler with dynamoDB handler
     # Get the object from the event and show its content type
     global bucket
     bucket = event['Records'][0]['s3']['bucket']['name']

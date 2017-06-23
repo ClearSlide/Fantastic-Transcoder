@@ -75,15 +75,15 @@ There are three tables within DynamoDB. ConversionID is the shared key between t
 - add SQS integration for first and last step (currently triggers from bucket)
 - dynamoDB reads/writes added to individual functions
 - Concat step functional testing & triggering off of dynamoDB.
-- encoding parameters logic - decide how much is necessary. 3 formats?
+- encoding parameters logic - allow people to specify destination codec in some manner.
 - add SQS access to IAM role in terraform
 - make bundler fully operational - should create python virtualenv as well as bundle lambda functions
 - Add installation/implementation guide
+- break out audio during segment and recombine during concat
 
 ## TODO after mvp
 - set up expiration time on s3 buckets
 - developer documentation that includes how to alter the ffmpeg commands
-- break out audio during segment and recombine during concat
 - update bundler script, build full tutorial on how to integrate FC
 - Add frontend for example purposes?
 - add support for converting audio files?

@@ -2,6 +2,10 @@
 
 # To be run on an amazon linux box. Creates python virtualenv, installs ffmpeg, and bundles the lambda functions.
 
+# TODO: Set up python virtualenv
+
+# TODO: Install any other dependencies (boto3?)
+
 ## Install ffmpeg
 yum update
 yum -y install autoconf automake build-essential git-core libass-devel.x86_64 libgpac-dev libsdl1.2-dev libtheora-dev libtool libx264-dev libvdpau-dev libvorbis-dev libx11-dev libxext-dev libxfixes-dev pkg-config texi2html zlib1g-dev libmp3lame-dev nasm gcc yasm && true

@@ -5,7 +5,7 @@ s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 
 def lambda_handler(event, context):
-
+    # TODO: replace s3 handler with dynamoDB handler
     # Get the objects from the event and show its content type
     global bucket
     bucket = event['Records'][0]['s3']['bucket']['name']
@@ -37,7 +37,11 @@ def lambda_handler(event, context):
             destination = 'Concatenated/'+file_name
             print "Uploading to s3..."
             s3_client.upload_file('/tmp/'+convertedfile, bucket, destination)
-            
+
+            # Delete message from SQS queue upon successful upload to s3
+            queue.delete_message(
+
+            )
         except  Exception as e:
             print(e)
             print('ERROR! Key: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
