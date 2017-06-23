@@ -31,7 +31,7 @@ def lambda_handler(event, context):
                 print "Downloading source files..."
                 s3_client.download_file(bucket, targetfile, '/tmp/'+file_name)
             # Verify that the current number of segments have been downloaded
-            perform()
+            concat()
 
             global destination
             destination = 'Concatenated/'+file_name
@@ -48,7 +48,7 @@ def lambda_handler(event, context):
             raise e
 
 # Converts video segment
-def perform():
+def concat():
     if key is not None:
         file = open('/tmp/targetlist.txt', w)
         for each in sorted(os.listdir('/tmp/*.ts')):

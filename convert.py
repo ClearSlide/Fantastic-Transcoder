@@ -25,19 +25,26 @@ def lambda_handler(event, context):
             print "Downloading source file..."
             s3_client.download_file(bucket, key, '/tmp/'+file_name)
 
-            perform()
+            transcode()
 
             global destination
             destination = 'Converted/'+transportstream
             print "Uploading to s3..."
             s3_client.upload_file('/tmp/'+transportstream, bucket, destination)
+
+            table = dynamodb.Table('FT_SegmentState')
+            segmentstatus = table.get_item(hash_key=SegmentID)
+            # Update SegmentState with segment completion
+            allsegments = table.get_item(hash_key=ConversionID)
+            # Check if all segments are complete: if they are, trigger concat step
+
         except Exception as e:
             print(e)
             print('ERROR! Key: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
             raise e
 
 # Converts video segment
-def perform():
+def transcode():
     if key is not None:
         print "Converting File..."
         global convertedfile

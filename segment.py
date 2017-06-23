@@ -30,7 +30,7 @@ def lambda_handler(event, context):
             s3_client.download_file(bucket, key, '/tmp/'+file_name)
 
             # Call ffmpy function
-            perform()
+            segment()
 
             global destination
 
@@ -47,7 +47,7 @@ def lambda_handler(event, context):
 
 
 # ffmpy invocation that SEGMENTs the video into chunks
-def perform():
+def segment():
     if key is not None:
         ff = ffmpy.FFmpeg(
         executable='./ffmpeg/ffmpeg',
