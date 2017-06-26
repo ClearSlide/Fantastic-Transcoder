@@ -6,10 +6,13 @@ def lambda_handler(event, context):
 
     client = boto3.client('sqs')
     queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
+    statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
     epochnow = int(time.time())
     # Accept message from SQS
-    message = client.receive_message(
+    message = client.receive_messages(
         QueueUrl=queue,
+        MessageID=messageID
+        ReceiptHandle=ReceiptHandle
         AttributeNames=[
             'All'
         ],
@@ -57,10 +60,14 @@ def lambda_handler(event, context):
     else:
     # If we've failed 3 times or are in some crazy unrecognizable state, move to deadletter queue
 
-        queue.delete_message(
-
+        client.delete_message(
+        QueueUrl=queue,
+        ReceiptHandle=ReceiptHandle
         )
-        statusqueue.put_message(
-        status: "failed"
-        
+
+
+        client.put_message(
+        QueueUrl=statusqueue
+        status='failed'
+
         )

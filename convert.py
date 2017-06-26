@@ -1,12 +1,26 @@
 import boto3
 import ffmpy
+import json
 
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
+dynamo = boto3.resource('dynamodb')
+table = dynamo.Table('FT_SegmentState')
 
 def lambda_handler(event, context):
-    # TODO: replace s3 handler with dynamoDB handler
     # Get the object from the event and show its content type
+
+#    print(json.dumps(event, context))
+#    for record in event['Records']:
+#        print record
+    ConversionID = event['ConversionID']
+    SegmentID = event['SegmentID']
+#    response = table.get_item(
+#    Key={
+#        'conversionID': conversion,
+#        'segmentID': segment
+#    }
+
     global bucket
     bucket = event['Records'][0]['s3']['bucket']['name']
     global key
@@ -32,12 +46,19 @@ def lambda_handler(event, context):
             print "Uploading to s3..."
             s3_client.upload_file('/tmp/'+transportstream, bucket, destination)
 
-            table = dynamodb.Table('FT_SegmentState')
             segmentstatus = table.get_item(hash_key=SegmentID)
             # Update SegmentState with segment completion
-            allsegments = table.get_item(hash_key=ConversionID)
             # Check if all segments are complete: if they are, trigger concat step
-
+            allsegments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
+            allstatus = allsegments['Completed']
+            if checksegments(allstatus):
+                nexttable = dynamo.Table('FT_VideoConversions')
+                nexttable.update_item(
+                   Key={
+                        'ConversionID': conversionID,
+                    },
+                    UpdateExpression="set ConcatReady = 1",
+                )
         except Exception as e:
             print(e)
             print('ERROR! Key: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
@@ -64,3 +85,13 @@ def transcode():
         outputs={'/tmp/'+transportstream : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'}
         )
         fff.run()
+
+
+# Checks if all segments are complete
+def checksegments(iterator):
+    iterator = iter(iterator)
+    try:
+        first = next(iterator)
+    except StopIteration:
+        return True
+    return all(first == rest for rest in iterator)

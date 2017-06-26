@@ -59,11 +59,6 @@ resource "aws_dynamodb_table" "conversion_state" {
   }
 
   attribute {
-    name = "SegmentID"
-    type = "N"
-  }
-
-  attribute {
     name = "SegmentsComplete"
     type = "N"
   }
