@@ -29,13 +29,16 @@ def lambda_handler(event, context):
     if not key.endswith('/'):
         try:
             # Finagle S3 bucket naming conventions so that boto retrieves the correct file.
+            print "Downloading source files..."
             for targetfile in list(conversionbucket.list("Converted/"+conversionID, "")):
                 global split_key
                 split_key = targetfile.split('/')
                 global file_name
                 file_name = split_key[-1]
-                print "Downloading source files..."
+
                 s3_client.download_file(bucket, targetfile, '/tmp/'+file_name)
+            print "Downloading audio file..."
+            s3_client.download_file(bucket, 'audio'+conversionID+'.mp3', '/tmp/'+conversionID+'.mp3')
             # Verify that the current number of segments have been downloaded
 
             sqs.put_message(
@@ -78,3 +81,11 @@ def concat():
         outputs={'/tmp/'+key : '-y -c copy -bsf:a aac_adtstoasc'}
         )
         ff.run()
+        fff=ffmpy.FFmpeg(
+        executable='./ffmpeg/ffmpeg',
+        inputs={
+        '/tmp/'+key : [None],
+        '/tmp/'+conversionID+'.mp3' : [None]
+        },
+        outputs={'/tmp/'+key+'-merged' : '-c:v copy -c:a aac -strict experimental'}
+        )
