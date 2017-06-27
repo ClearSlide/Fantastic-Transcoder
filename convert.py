@@ -6,6 +6,7 @@ s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 dynamo = boto3.resource('dynamodb')
 table = dynamo.Table('FT_SegmentState')
+# We don't interact with SQS in this job because it runs in parallel with so many others.
 
 def lambda_handler(event, context):
     # Get the object from the event and show its content type
@@ -44,21 +45,29 @@ def lambda_handler(event, context):
             global destination
             destination = 'Converted/'+transportstream
             print "Uploading to s3..."
-            s3_client.upload_file('/tmp/'+transportstream, bucket, destination)
-
-            segmentstatus = table.get_item(hash_key=SegmentID)
-            # Update SegmentState with segment completion
-            # Check if all segments are complete: if they are, trigger concat step
-            allsegments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
-            allstatus = allsegments['Completed']
-            if checksegments(allstatus):
-                nexttable = dynamo.Table('FT_VideoConversions')
-                nexttable.update_item(
-                   Key={
-                        'ConversionID': conversionID,
+            return = s3_client.upload_file('/tmp/'+transportstream, bucket, destination)
+            if return == 1:
+                table.update_item(
+                key={
+                    'SegmentID': SegmentID,
                     },
-                    UpdateExpression="set ConcatReady = 1",
+                UpdateExpression="set Completed = 1",
                 )
+
+                segmentstatus = table.get_item
+
+                # Update SegmentState with segment completion
+                # Check if all segments are complete: if they are, trigger concat step
+                allsegments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
+                allstatus = allsegments['Completed']
+                if checksegments(allstatus):
+                    nexttable = dynamo.Table('FT_VideoConversions')
+                    nexttable.update_item(
+                       Key={
+                            'ConversionID': conversionID,
+                        },
+                        UpdateExpression="set ConcatReady = 1",
+                    )
         except Exception as e:
             print(e)
             print('ERROR! Key: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))

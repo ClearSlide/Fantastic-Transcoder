@@ -61,7 +61,7 @@ Triggered by DynamoDB.FT_VideoConversions.SegmentsComplete?
 
 ## DynamoDB Data structure
 There are three tables within DynamoDB. ConversionID is the shared key between the tables. It's a unique identifier for each individual video to be converted.
-- FT_VideoConversions triggers Conversions and contains basic data about the video file, such as the unique identifier and the number of retries.
+- FT_VideoConversions triggers Conversions and contains basic data about the video file, such as the unique identifier and the number of retries. It also includes identifiers for the SQS messages
 - FT_ConversionState tracks state data about the overall conversion process.
 - FT_SegmentState tracks the conversion status of each segment
 

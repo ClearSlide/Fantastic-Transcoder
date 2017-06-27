@@ -4,12 +4,12 @@ import time
 
 def lambda_handler(event, context):
 
-    client = boto3.client('sqs')
+    sqs = boto3.client('sqs')
     queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
     statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
     epochnow = int(time.time())
     # Accept message from SQS
-    message = client.receive_messages(
+    message = sqs.receive_messages(
         QueueUrl=queue,
         MessageID=messageID
         ReceiptHandle=ReceiptHandle
@@ -45,6 +45,12 @@ def lambda_handler(event, context):
         )
         print("PutItem succeeded:")
         print(json.dumps(response, indent=4, cls=DecimalEncoder))
+        sqs.put_message(
+        QueueUrl=statusqueue
+        ReceiptHandle=StatusReceipt
+        status='Waiting for Encoder'
+
+        )
     # If we have been here before, increment retries. This still triggers convert
     else if retries < 4:
         table.update_item(
@@ -60,14 +66,19 @@ def lambda_handler(event, context):
     else:
     # If we've failed 3 times or are in some crazy unrecognizable state, move to deadletter queue
 
-        client.delete_message(
+        sqs.delete_message(
         QueueUrl=queue,
         ReceiptHandle=ReceiptHandle
         )
 
+        sqs.put_message(
+        QueueURL=deadletterqueue
+        # Figure out how this works
+        )
 
-        client.put_message(
+        sqs.put_message(
         QueueUrl=statusqueue
+        ReceiptHandle=StatusReceipt
         status='failed'
 
         )

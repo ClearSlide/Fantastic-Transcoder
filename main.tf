@@ -11,7 +11,12 @@ resource "aws_dynamodb_table" "video_conversions" {
   }
 
   attribute {
-    name = "MessageID"
+    name = "QueueMessageID"
+    type = "S"
+  }
+
+  attribute {
+    name = "QueueReceiptHandle"
     type = "S"
   }
 
