@@ -59,7 +59,11 @@ def lambda_handler(event, context):
             for filename in os.listdir('/tmp/SEGMENT*'):
                 destination = 'Segmented/{}'.format(filename)
                 s3_client.upload_file('/tmp/'+filename, bucket, destination)
+            print "Uploading audio to s3"
+                audiodestination = 'Audio/{}'.format(file_name)
+                s3_client.upload_file('/tmp/'+file_name+'.mp3', bucket, audiodestination)
 
+            # Update status queue
             sqs.put_message(
             QueueUrl=statusqueue
             ReceiptHandle=StatusReceipt
@@ -75,9 +79,15 @@ def lambda_handler(event, context):
 # ffmpy invocation that SEGMENTs the video into chunks
 def segment():
     if key is not None:
+        f = ffmpy.FFmpeg(
+        executable='./ffmpeg/ffmpeg',
+        inputs={'/tmp/'+file_name : None},
+        outputs={'/tmp/'+file_name+'.mp3': '-c copy'}
+        )
         ff = ffmpy.FFmpeg(
         executable='./ffmpeg/ffmpeg',
         inputs={'/tmp/'+file_name : None},
         outputs={'/tmp/SEGMENT%d{}'.format(file_extension): '-acodec copy -c:a libfdk_aac -f segment -vcodec copy -reset_timestamps 1 -map 0'}
         )
+        f.run()
         ff.run()
