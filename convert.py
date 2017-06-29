@@ -61,7 +61,7 @@ def lambda_handler(event, context):
                 allsegments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
                 allstatus = allsegments['Completed']
                 if checksegments(allstatus):
-                    nexttable = dynamo.Table('FT_VideoConversions')
+                    nexttable = dynamo.Table('FT_ConversionState')
                     nexttable.update_item(
                        Key={
                             'ConversionID': conversionID,

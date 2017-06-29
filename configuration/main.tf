@@ -26,11 +26,6 @@ resource "aws_dynamodb_table" "video_conversions" {
   }
 
   attribute {
-    name = "ConcatReady"
-    type = "N"
-  }
-
-  attribute {
     name = "Updated"
     type = "N"
   }
@@ -65,6 +60,11 @@ resource "aws_dynamodb_table" "conversion_state" {
 
   attribute {
     name = "SegmentsComplete"
+    type = "N"
+  }
+
+  attribute {
+    name = "ConcatReady"
     type = "N"
   }
 
