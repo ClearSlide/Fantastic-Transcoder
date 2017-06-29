@@ -119,7 +119,7 @@ resource "aws_dynamodb_table" "segment_state" {
 
 # S3 bucket which the lambda functions will interact with by default.
 resource "aws_s3_bucket" "video_conversions" {
-  bucket = "FT_VideoConversions"
+  bucket = "${var.unique_name}-FT_VideoConversions"
   acl    = "private"
 
   tags {
@@ -128,21 +128,70 @@ resource "aws_s3_bucket" "video_conversions" {
   }
 }
 
-# IAM role for lambda access to S3
+# IAM role for lambda access to S3, SQS, DynamoDB
 resource "aws_iam_role" "iam_for_lambda" {
   name = "Fantastic_Transcoder_role"
+}
 
-  assume_role_policy = <<EOF
+resource "aws_iam_role_policy" "FT_s3_access" {
+  name = "FT_s3_access"
+  description = "Grants access to FT_VideoConversions s3 bucket"
+  role = "${aws_iam_role.iam_for_lambda.arn}"
+  policy = <<EOF
   {
-    "Version": "2012-10-17",
+    "Version": "2017-06-29",
     "Statement": [
       {
-        "Effect": "Deny",
+        "Effect": "Allow",
         "Principal": "*",
         "Action": "s3:*",
         "Resource": [
-          "arn:aws:s3:::FT_VideoConversions",
-          "arn:aws:s3:::FT_VideoConversions/*"
+          "${aws_s3_bucket.video_conversions.arn}",
+          "${aws_s3_bucket.video_conversions.arn}/*"
+        ],
+      }
+  }
+EOF
+}
+
+resource "aws_iam_role_policy" "FT_sqs_access" {
+  name = "FT_sqs_access"
+  description = "Grants access to FT SQS queues"
+  role = "${aws_iam_role.iam_for_lambda.arn}"
+  policy = <<EOF
+  {
+    "Version": "2017-06-29",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "sqs:*",
+        "Resource": [
+          "${aws_sqs_queue.ft_videoconvert_queue.arn}",
+          "${aws_sqs_queue.ft_status_queue.arn}",
+          "${aws_sqs_queue.ft_deadletter_queue.arn}"
+        ],
+      }
+  }
+EOF
+}
+
+resource "aws_iam_role_policy" "FT_dynamodb_access" {
+  name = "FT_dynamodb_access"
+  description = "Grants access to FT DynamoDB tables"
+  role = "${aws_iam_role.iam_for_lambda.arn}"
+  policy = <<EOF
+  {
+    "Version": "2017-06-29",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "dynamodb:*",
+        "Resource": [
+          "${aws_dynamodb_table.FT_VideoConversions.arn}",
+          "${aws_dynamodb_table.FT_SegmentState.arn}",
+          "${aws_dynamodb_table.FT_ConversionState.arn}"
         ],
       }
   }
@@ -156,7 +205,7 @@ resource "aws_sqs_queue" "ft_videoconvert_queue" {
   max_message_size          = 2048
   message_retention_seconds = 1800
   receive_wait_time_seconds = 10
-  redrive_policy            = "{\"deadLetterTargetArn\":\"${aws_sqs_queue.ft_videoconvert_queue_deadletter.arn}\",\"maxReceiveCount\":4}"
+  redrive_policy            = "{\"deadLetterTargetArn\":\"${aws_sqs_queue.ft_deadletter_queue.arn}\",\"maxReceiveCount\":4}"
 }
 
 # SQS deadletter queue

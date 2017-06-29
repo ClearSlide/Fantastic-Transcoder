@@ -89,6 +89,8 @@ There are three tables within DynamoDB. ConversionID is the shared key between t
 - add support for status queue:
 - hopefully deprecate polling function in favor of triggering from SQS -
   cmon amazon!
+- hopefully add autoscaling for dynamoDB instead of specifying static values in main.tf -
+  cmon hashicorp!
 - Make it easier for contributors to add support for alternate IIASPs (google and azure functions)
 - Add support for subtitles - break them out with the audio during segmentation
 - FAQ
