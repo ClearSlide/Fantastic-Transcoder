@@ -57,6 +57,12 @@ def lambda_handler(event, context):
                 segmentstatus = table.get_item
 
                 # Update SegmentState with segment completion
+                table.update_item(
+                   Key={
+                        'SegmentID': SegmentID,
+                    },
+                    UpdateExpression="set completed = 1",
+                )
                 # Check if all segments are complete: if they are, trigger concat step
                 allsegments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
                 allstatus = allsegments['Completed']
