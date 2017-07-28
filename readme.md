@@ -79,6 +79,8 @@ There are three tables within DynamoDB. ConversionID is the shared key between t
 - add SQS access to IAM role in terraform
 - make bundler fully operational - should create python virtualenv as well as bundle lambda functions
 - Add installation/implementation guide
+- 100% code coverage
+- Jenkinsfile for automated deployment to multiple environments
 
 ## TODO after mvp
 - set up expiration time on s3 buckets
