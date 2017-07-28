@@ -10,12 +10,13 @@ table = dynamo.Table('FT_SegmentState')
 
 def lambda_handler(event, context):
     # Get the object from the event and show its content type
+    # This lambda is triggered from FT_SegmentState
 
 #    print(json.dumps(event, context))
 #    for record in event['Records']:
 #        print record
-    ConversionID = event['ConversionID']
-    SegmentID = event['SegmentID']
+    ConversionID = event['Records']['ConversionID']
+    SegmentID = event['Records']['SegmentID']
 #    response = table.get_item(
 #    Key={
 #        'conversionID': conversion,

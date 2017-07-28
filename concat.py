@@ -10,6 +10,7 @@ queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
 statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
 
 def lambda_handler(event, context):
+    # This job is triggered by FT_ConversionState
     # TODO: replace s3 handler with dynamoDB handler
     # Get the objects from the event and show its content type
     # global bucket
@@ -38,6 +39,7 @@ def lambda_handler(event, context):
 
                 s3_client.download_file(bucket, targetfile, '/tmp/'+file_name)
             print "Downloading audio file..."
+            # Is this good enough? Or should we log/track the audio file in dynamo?
             s3_client.download_file(bucket, 'audio'+conversionID+'.mp3', '/tmp/'+conversionID+'.mp3')
             # Verify that the current number of segments have been downloaded
 
@@ -50,7 +52,7 @@ def lambda_handler(event, context):
 
             global destination
             destination = 'Concatenated/'+file_name
-            print "Uploading to s3..."
+            print "Uploading completed file to s3..."
             s3_client.upload_file('/tmp/'+convertedfile, bucket, destination)
             sqs.put_message(
             QueueUrl=statusqueue

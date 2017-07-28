@@ -11,14 +11,14 @@ statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
 
 def lambda_handler(event, context):
     # Get the object from the event and show its content type
-
+    # This job is triggered by FT_VideoConversions
     # global bucket
     # bucket = event['Records'][0]['s3']['bucket']['name']
     # global key
     # key = event['Records'][0]['s3']['object']['key']
 
-    ConversionID = event['ConversionID']
-    SegmentID = event['SegmentID']
+    ConversionID = event['Records']['ConversionID']
+    SegmentID = event['Records']['SegmentID']
     bucket = 'FTVideoConversions'
     key = 'Original/' + ConversionID
 
