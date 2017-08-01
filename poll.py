@@ -24,8 +24,9 @@ def lambda_handler(event, context):
 
     for m in messages:
 
-        #using uploadID
+        # Load SQS Message as dictionary
         body = json.loads(m.body)
+
         ConversionID = body['uploadID']
         RequestedFormats = body['sizeFormat']
         VideoURL = body['s3_url']
@@ -38,9 +39,7 @@ def lambda_handler(event, context):
 
         # Check if this job has been done before.
         # If we have not been here before, create a new row in DynamoDB. This triggers Lambda 2: Segment
-
         entry = table.get_item(Key={'ConversionID' : ConversionID})
-
         if entry is None:
             table.put_item(
                Item={
