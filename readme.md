@@ -70,6 +70,16 @@ There are three tables within DynamoDB. ConversionID is the shared key between t
 - Any lambda, if ffmpeg exits with status other than 1, trigger failed in dynamoDB & update SQS queue message visibility to 1
 - If retries > 5 when accepting from SQS queue, send to deadletter queue instead. Configure cloudwatch alert on deadletter queue
 
+## SQS Message Structure:
+```
+fileName : video.mp4
+bucket : bucket_name
+uploadID : THIS15ANUPL0ADID
+path : /path/to/your/thing/
+sizeFormat : {'1080p': ['MP4'], 'original': ['MP4'], '480p': ['MP4']}
+s3_url : https://bucket_name.s3.amazonaws.com/path/to/your/thing/video.mp4
+```
+
 ## TODO for mvp
 - get upload endpoint up and dumping to correct bucket
 - add SQS integration for first and last step (currently triggers from bucket)
@@ -100,6 +110,9 @@ There are three tables within DynamoDB. ConversionID is the shared key between t
 ## Maintainers
 Current Maintainers:
 - Gabe Abinante (ClearSlide) - https://github.com/gabinante
+
+## Contributors
+- Jonathan Tan (ClearSlide) - https://github.com/jonathanjtan
 
 ## Copyright
 Copyright 2017 ClearSlide, inc.
