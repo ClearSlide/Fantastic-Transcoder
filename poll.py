@@ -25,7 +25,7 @@ def lambda_handler(event, context):
 
             ConversionID = body['uploadID']
             RequestedFormats = body['sizeFormat']
-            VideoURL = body['s3_url']
+            VideoURL = "https://{}.s3.amazonaws.com/{}{}".format(body['bucket'], body['path'], body['fileName'])
             QueueMessageID = m.message_id
 
             # Write to DynamoDB
