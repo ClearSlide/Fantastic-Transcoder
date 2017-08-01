@@ -1,15 +1,13 @@
-import boto3
-import json
-import time
+import boto3, json, time
 
 def lambda_handler(event, context):
 
-    sqs = boto3.client('sqs')
+    sqs = boto3.resource('sqs')
     queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
     statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
     epochnow = int(time.time())
     # Accept message from SQS
-    message = sqs.receive_messages(
+    messages = sqs.receive_messages(
         QueueUrl=queue,
         MessageID=messageID
         ReceiptHandle=ReceiptHandle
@@ -23,62 +21,55 @@ def lambda_handler(event, context):
         VisibilityTimeout=600,
         WaitTimeSeconds=5,
         )
-    print message
-    # TODO: get conversionID from SQS message
 
-    # Write to DynamoDB
-    db = boto3.resource('dynamodb')
-    table = dynamodb.Table('FT_VideoConversions')
+    for m in messages:
 
-    # TODO: This should be each because we can get multiple messages.
-    # Check if this job has been done before.
-    exists = table.get_item(hash_key=conversionID)
+        #using uploadID
+        body = json.loads(m.body)
+        ConversionID = body['uploadID']
+        RequestedFormats = body['sizeFormat']
+        VideoURL = body['s3_url']
+        QueueReceiptHandle = m.reciept_handle
+        QueueMessageID = m.message_id
 
-    # If we have not been here before, create a new row in DynamoDB. This triggers Lambda 2: Segment
-    if exists is None:
-        table.put_item(
-           Item={
-                'ConversionID': conversionID,
-                'created': epochnow,
-                'retries': 0
-            }
-        )
-        print("PutItem succeeded:")
-        print(json.dumps(response, indent=4, cls=DecimalEncoder))
-        sqs.put_message(
-        QueueUrl=statusqueue
-        ReceiptHandle=StatusReceipt
-        status='Waiting for Encoder'
+        # Write to DynamoDB
+        db = boto3.resource('dynamodb')
+        table = dynamodb.Table('FT_VideoConversions')
 
-        )
-    # If we have been here before, increment retries. This still triggers convert
-    else if retries < 4:
-        table.update_item(
-            Key={
-                'ConversionID': conversionID
-            },
-            UpdateExpression="set retries = retries + :val",
-            ExpressionAttributeValues={
-                ':val': decimal.Decimal(1),
-            },
-            'updated': epochnow
-        )
-    else:
-    # If we've failed 3 times or are in some crazy unrecognizable state, move to deadletter queue
-
-        sqs.delete_message(
-        QueueUrl=queue,
-        ReceiptHandle=ReceiptHandle
-        )
-
-        sqs.put_message(
-        QueueURL=deadletterqueue
-        # Figure out how this works
-        )
-
-        sqs.put_message(
-        QueueUrl=statusqueue
-        ReceiptHandle=StatusReceipt
-        status='failed'
-
-        )
+        # TODO: This should be each because we can get multiple messages.
+        # Check if this job has been done before.
+        # If we have not been here before, create a new row in DynamoDB. This triggers Lambda 2: Segment
+        if table.get_item(hash_key=conversionID) is None:
+            table.put_item(
+               Item={
+                    'ConversionID': ConversionID,
+                    'Created': epochnow,
+                    'Updated': epochnow,
+                    'QueueMessageID': QueueMessageID,
+                    'RequestedFormats': RequestedFormats,
+                    'Retries': 0,
+                    'VideoURL': VideoURL
+                }
+            )
+            print("PutItem succeeded:")
+            print(json.dumps(response, indent=4, cls=DecimalEncoder))
+            '''
+            sqs.put_message(
+                QueueUrl=statusqueue
+                status='Waiting for Encoder'
+            )'''
+        # If we have been here before, increment retries. This still triggers convert
+        else if table.get_item(hash_key=conversionID)['retries'] < 4:
+            table.update_item(
+                Key={
+                    'ConversionID': conversionID
+                },
+                UpdateExpression="set retries = retries + :val",
+                ExpressionAttributeValues={
+                    ':val': decimal.Decimal(1),
+                },
+                'updated': epochnow
+            )
+        else:
+        # If we've failed 3 times or are in some crazy unrecognizable state, move to deadletter queue
+            raise Exception("Redrive policy should have run.")

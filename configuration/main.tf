@@ -16,11 +16,6 @@ resource "aws_dynamodb_table" "video_conversions" {
   }
 
   attribute {
-    name = "QueueReceiptHandle"
-    type = "S"
-  }
-
-  attribute {
     name = "Created"
     type = "N"
   }
@@ -28,6 +23,21 @@ resource "aws_dynamodb_table" "video_conversions" {
   attribute {
     name = "Updated"
     type = "N"
+  }
+
+  attribute {
+    name = "Retries"
+    type = "N"
+  }
+
+  attribute {
+    name = "VideoURL"
+    type = "S"
+  }
+
+  attribute {
+    name = "RequestedFormats"
+    type = "S"
   }
 
   tags {
@@ -50,11 +60,6 @@ resource "aws_dynamodb_table" "conversion_state" {
 
   attribute {
     name = "SegmentTotal"
-    type = "N"
-  }
-
-  attribute {
-    name = "Retries"
     type = "N"
   }
 
