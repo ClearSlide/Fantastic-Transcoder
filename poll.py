@@ -60,7 +60,7 @@ def lambda_handler(event, context):
                 Key={
                     'ConversionID': conversionID
                 },
-                UpdateExpression="set retries = retries + :val",
+                UpdateExpression="set Retries = Retries + :val",
                 ExpressionAttributeValues={
                     ':val': decimal.Decimal(1)
                 }
