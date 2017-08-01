@@ -36,10 +36,12 @@ def lambda_handler(event, context):
         db = boto3.resource('dynamodb')
         table = dynamodb.Table('FT_VideoConversions')
 
-        # TODO: This should be each because we can get multiple messages.
         # Check if this job has been done before.
         # If we have not been here before, create a new row in DynamoDB. This triggers Lambda 2: Segment
-        if table.get_item(hash_key=conversionID) is None:
+
+        entry = table.get_item(Key={'ConversionID' : ConversionID})
+
+        if entry is None:
             table.put_item(
                Item={
                     'ConversionID': ConversionID,
@@ -59,7 +61,7 @@ def lambda_handler(event, context):
                 status='Waiting for Encoder'
             )'''
         # If we have been here before, increment retries. This still triggers convert
-        else if table.get_item(hash_key=conversionID)['retries'] < 4:
+        else if entry['retries'] < 4:
             table.update_item(
                 Key={
                     'ConversionID': conversionID
