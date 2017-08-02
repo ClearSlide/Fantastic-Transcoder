@@ -189,6 +189,7 @@ resource "aws_iam_role_policy" "FT_s3_access" {
           "dynamodb:GetItem",
           "dynamodb:GetRecords",
           "dynamodb:ListTables",
+          "dynamodb:PutItem",
           "dynamodb:Query",
           "dynamodb:Scan",
           "dynamodb:UpdateItem",
