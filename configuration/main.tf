@@ -16,6 +16,17 @@ resource "aws_dynamodb_table" "video_conversions" {
   }
 
   attribute {
+    name = "RequestedFormats"
+    type = "S"
+  }
+
+  attribute {
+    name = "VideoURL"
+    type = "S"
+
+  }
+
+  attribute {
     name = "Created"
     type = "N"
   }
@@ -25,27 +36,11 @@ resource "aws_dynamodb_table" "video_conversions" {
     type = "N"
   }
 
-  attribute {
-    name = "Retries"
-    type = "N"
-  }
-
-  attribute {
-    name = "VideoURL"
-    type = "S"
-  }
-
-  attribute {
-    name = "RequestedFormats"
-    type = "S"
-  }
-
   tags {
     Name        = "VideoConversions"
     Environment = "production"
   }
 }
-
 
 resource "aws_dynamodb_table" "conversion_state" {
   name           = "FT_ConversionState"
@@ -60,6 +55,11 @@ resource "aws_dynamodb_table" "conversion_state" {
 
   attribute {
     name = "SegmentTotal"
+    type = "N"
+  }
+
+  attribute {
+    name = "Retries"
     type = "N"
   }
 
@@ -139,66 +139,79 @@ resource "aws_iam_role" "iam_for_lambda" {
 }
 
 resource "aws_iam_role_policy" "FT_s3_access" {
-  name = "FT_s3_access"
-  description = "Grants access to FT_VideoConversions s3 bucket"
+  name = "FT_s3_sqs_dynamo_cloudwatch_access"
+  description = "Grants access to Fantastic Transcoder s3 bucket, SQS queues, DynamoDB tables, and cloudwatch actions"
   role = "${aws_iam_role.iam_for_lambda.arn}"
   policy = <<EOF
   {
-    "Version": "2017-06-29",
+    "Version": "2017-8-1",
     "Statement": [
       {
+        "Sid": "Stmt1501625129289",
+        "Action": [
+          "s3:DeleteObject",
+          "s3:GetObject",
+          "s3:GetObjectVersion",
+          "s3:ListBucket",
+          "s3:PutObject"
+        ],
         "Effect": "Allow",
-        "Principal": "*",
-        "Action": "s3:*",
-        "Resource": [
           "${aws_s3_bucket.video_conversions.arn}",
           "${aws_s3_bucket.video_conversions.arn}/*"
-        ],
-      }
-  }
-EOF
-}
-
-resource "aws_iam_role_policy" "FT_sqs_access" {
-  name = "FT_sqs_access"
-  description = "Grants access to FT SQS queues"
-  role = "${aws_iam_role.iam_for_lambda.arn}"
-  policy = <<EOF
-  {
-    "Version": "2017-06-29",
-    "Statement": [
+      },
       {
+        "Sid": "Stmt1501625293950",
+        "Action": [
+          "sqs:ChangeMessageVisibility",
+          "sqs:ChangeMessageVisibilityBatch",
+          "sqs:DeleteMessage",
+          "sqs:DeleteMessageBatch",
+          "sqs:GetQueueAttributes",
+          "sqs:GetQueueUrl",
+          "sqs:ListDeadLetterSourceQueues",
+          "sqs:ListQueues",
+          "sqs:ReceiveMessage",
+          "sqs:SendMessage"
+        ],
         "Effect": "Allow",
-        "Principal": "*",
-        "Action": "sqs:*",
         "Resource": [
           "${aws_sqs_queue.ft_videoconvert_queue.arn}",
           "${aws_sqs_queue.ft_status_queue.arn}",
           "${aws_sqs_queue.ft_deadletter_queue.arn}"
-        ],
-      }
-  }
-EOF
-}
-
-resource "aws_iam_role_policy" "FT_dynamodb_access" {
-  name = "FT_dynamodb_access"
-  description = "Grants access to FT DynamoDB tables"
-  role = "${aws_iam_role.iam_for_lambda.arn}"
-  policy = <<EOF
-  {
-    "Version": "2017-06-29",
-    "Statement": [
+        ]
+      },
       {
+        "Sid": "Stmt1501625433099",
+        "Action": [
+          "dynamodb:BatchGetItem",
+          "dynamodb:BatchWriteItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:GetItem",
+          "dynamodb:GetRecords",
+          "dynamodb:ListTables",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:UpdateItem",
+          "dynamodb:UpdateTable"
+        ],
         "Effect": "Allow",
-        "Principal": "*",
-        "Action": "dynamodb:*",
         "Resource": [
           "${aws_dynamodb_table.FT_VideoConversions.arn}",
           "${aws_dynamodb_table.FT_SegmentState.arn}",
           "${aws_dynamodb_table.FT_ConversionState.arn}"
+        ]
+      },
+      {
+        "Sid": "Stmt1501625545206",
+        "Action": [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:PutLogEvents"
         ],
+        "Effect": "Allow",
+        "Resource": "arn:aws:logs:*"
       }
+    ]
   }
 EOF
 }
