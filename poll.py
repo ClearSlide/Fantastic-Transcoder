@@ -54,16 +54,17 @@ def lambda_handler(event, context):
                     status='Waiting for Encoder'
                 )'''
                 # If we have been here before, increment retries. This still triggers convert
-            elif entry['Retries'] < 4:
+            elif entry['Item']['Retries'] < 4:
                 table.update_item(
                 Key={
-                    'ConversionID': conversionID
+                    'ConversionID': ConversionID
                 },
-                UpdateExpression="set Retries = Retries + :val",
                 ExpressionAttributeValues={
-                    ':val': decimal.Decimal(1)
-                }
+                    ':val': 1
+                },
+                UpdateExpression="set Retries = Retries + :val"
                 )
+                print("UpdateItem suceeded:")
                 # If we've failed 3 times or are in some crazy unrecognizable state, move to deadletter queue
             else:
                 raise Exception("Redrive policy should have run.")
