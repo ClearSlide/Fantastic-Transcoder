@@ -47,7 +47,7 @@ def lambda_handler(event, context):
                                     'VideoURL': VideoURL
                                 })
                 print("PutItem succeeded:")
-                #print(json.dumps(response, indent=4, cls=DecimalEncoder))
+                print(json.dumps(response, indent=4))
                 '''
                 sqs.put_message(
                     QueueUrl=statusqueue
@@ -55,16 +55,12 @@ def lambda_handler(event, context):
                 )'''
                 # If we have been here before, increment retries. This still triggers convert
             elif entry['Item']['Retries'] < 4:
-                table.update_item(
-                Key={
-                    'ConversionID': ConversionID
-                },
-                ExpressionAttributeValues={
-                    ':val': 1
-                },
-                UpdateExpression="set Retries = Retries + :val"
-                )
+                response = table.update_item(
+                                Key={'ConversionID': ConversionID},
+                                ExpressionAttributeValues={':val': 1},
+                                UpdateExpression="set Retries = Retries + :val")
                 print("UpdateItem suceeded:")
+                print(json.dumps(response, indent=4))
                 # If we've failed 3 times or are in some crazy unrecognizable state, move to deadletter queue
             else:
                 raise Exception("Redrive policy should have run.")
