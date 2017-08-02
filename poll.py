@@ -35,7 +35,7 @@ def lambda_handler(event, context):
             # Check if this job has been done before.
             # If we have not been here before, create a new row in DynamoDB. This triggers Lambda 2: Segment
             entry = table.get_item(Key={'ConversionID' : ConversionID})
-            if entry is None:
+            if 'Item' not in entry:
                 table.put_item(
                    Item={
                         'ConversionID': ConversionID,
