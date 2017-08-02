@@ -4,7 +4,7 @@ def lambda_handler(event, context):
 
     sqs = boto3.resource('sqs')
     queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
-   # statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
+    #statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
     epochnow = int(time.time())
     # Accept message from SQS
     messages = queue.receive_messages(
@@ -36,19 +36,18 @@ def lambda_handler(event, context):
             # If we have not been here before, create a new row in DynamoDB. This triggers Lambda 2: Segment
             entry = table.get_item(Key={'ConversionID' : ConversionID})
             if 'Item' not in entry:
-                table.put_item(
-                   Item={
-                        'ConversionID': ConversionID,
-                        'Created': epochnow,
-                        'Updated': epochnow,
-                        'QueueMessageID': QueueMessageID,
-                        'RequestedFormats': RequestedFormats,
-                        'Retries': 0,
-                        'VideoURL': VideoURL
-                    }
-                )
+                response = table.put_item(
+                               Item={
+                                    'ConversionID': ConversionID,
+                                    'Created': epochnow,
+                                    'Updated': epochnow,
+                                    'QueueMessageID': QueueMessageID,
+                                    'RequestedFormats': RequestedFormats,
+                                    'Retries': 0,
+                                    'VideoURL': VideoURL
+                                })
                 print("PutItem succeeded:")
-                print(json.dumps(response, indent=4, cls=DecimalEncoder))
+                #print(json.dumps(response, indent=4, cls=DecimalEncoder))
                 '''
                 sqs.put_message(
                     QueueUrl=statusqueue
