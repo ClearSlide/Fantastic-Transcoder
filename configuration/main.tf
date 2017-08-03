@@ -6,7 +6,27 @@ resource "aws_dynamodb_table" "video_conversions" {
   hash_key       = "ConversionID"
 
   attribute {
+    name = "Bucket"
+    type = "S"
+  }
+
+  attribute {
     name = "ConversionID"
+    type = "S"
+  }
+
+  attribute {
+    name = "Created"
+    type = "N"
+  }
+
+  attribute {
+    name = "Filename"
+    type = "S"
+  }
+
+  attribute {
+    name = "Path"
     type = "S"
   }
 
@@ -21,19 +41,14 @@ resource "aws_dynamodb_table" "video_conversions" {
   }
 
   attribute {
+    name = "Updated"
+    type = "N"
+  }
+
+  attribute {
     name = "VideoURL"
     type = "S"
 
-  }
-
-  attribute {
-    name = "Created"
-    type = "N"
-  }
-
-  attribute {
-    name = "Updated"
-    type = "N"
   }
 
   tags {

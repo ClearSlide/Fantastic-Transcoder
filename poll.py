@@ -21,9 +21,12 @@ def lambda_handler(event, context):
             body = json.loads(m.body)
 
             # Assign important variables
+            Bucket = body['bucket']
+            Path = body['path']
+            Filename = body['fileName']
             ConversionID = body['uploadID']
             RequestedFormats = body['sizeFormat']
-            VideoURL = "https://{}.s3.amazonaws.com/{}{}".format(body['bucket'], body['path'], body['fileName'])
+            VideoURL = "https://{}.s3.amazonaws.com/{}{}".format(Bucket, Path, Filename)
             QueueMessageID = m.message_id
 
             # Write to DynamoDB
@@ -35,12 +38,15 @@ def lambda_handler(event, context):
             if 'Item' not in entry:
                 response = table.put_item(
                                Item={
+                                    'Bucket': Bucket
                                     'ConversionID': ConversionID,
                                     'Created': epochnow,
-                                    'Updated': epochnow,
+                                    'Filename': Filename,
+                                    'Path': Path,
                                     'QueueMessageID': QueueMessageID,
                                     'RequestedFormats': RequestedFormats,
                                     'Retries': 0,
+                                    'Updated': epochnow,
                                     'VideoURL': VideoURL
                                 })
                 print("PutItem succeeded: {}".format(json.dumps(response, indent=4)))
