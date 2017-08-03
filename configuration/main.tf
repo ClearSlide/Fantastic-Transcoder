@@ -186,9 +186,12 @@ resource "aws_iam_role_policy" "FT_s3_access" {
           "dynamodb:BatchGetItem",
           "dynamodb:BatchWriteItem",
           "dynamodb:DeleteItem",
+          "dynamodb:DescribeStream",
           "dynamodb:GetItem",
           "dynamodb:GetRecords",
+          "dynamodb:GetShardIterator",
           "dynamodb:ListTables",
+          "dynamodb:ListStreams",
           "dynamodb:PutItem",
           "dynamodb:Query",
           "dynamodb:Scan",
@@ -199,7 +202,10 @@ resource "aws_iam_role_policy" "FT_s3_access" {
         "Resource": [
           "${aws_dynamodb_table.FT_VideoConversions.arn}",
           "${aws_dynamodb_table.FT_SegmentState.arn}",
-          "${aws_dynamodb_table.FT_ConversionState.arn}"
+          "${aws_dynamodb_table.FT_ConversionState.arn}",
+          "${aws_dynamodb_table.FT_VideoConversions.arn}/*",
+          "${aws_dynamodb_table.FT_SegmentState.arn}/*",
+          "${aws_dynamodb_table.FT_ConversionState.arn}/*"
         ]
       },
       {
