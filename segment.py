@@ -1,6 +1,4 @@
-import boto3
-import ffmpy
-import os
+import boto3, ffmpy, os
 
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
@@ -13,24 +11,28 @@ def lambda_handler(event, context):
     # Get the object from the event and show its content type
     # This job is triggered by FT_VideoConversions
 
-    Bucket = event[0]['dynamodb']['NewImage']['Bucket']
-    Key = event[0]['dynamodb']['NewImage']['Key']
-    ConversionID = event[0]['dynamodb']['NewImage']['ConversionID']
-    QueueMessageID = event[0]['dynamodb']['NewImage']['QueueMessageID']
+    Row = event[0]['dynamodb']['NewImage']
+    Bucket = Row['Bucket']
+    Filename = Row['Filename']
+    Path = Row['Path']
+    ConversionID = Row['ConversionID']
+    QueueMessageID = Row['QueueMessageID']
+    S3Path = "{}{}".format(Path, Filename)
+    LocalPath = "/tmp/{}/{}".format(ConversionID, Filename)
 
-    print "Bucket/Key is {}{}".format(Bucket, Key)
-    print "ConversionID is {}".format(ConversionID)
+    print "Bucket/ConversionID is {}, {}".format(Bucket, ConversionID)
+    print "QueueMessageID is {}".format(QueueMessageID)
 
-    if not Key.endswith('/'):
+    if not S3Path.endswith('/'):
         try:
             # Finagle S3 bucket naming conventions so that boto retrieves the correct file
-            global split_key
-            split_key = Key.split('/')
-            global file_name
-            file_name = Key[-1]
-            global file_extension
-            file_extension = os.path.splitext(file_name)[1]
-            print "segmenting {} file".format(file_extension)
+            #global split_key
+            #split_key = Key.split('/')
+            #global file_name
+            #file_name = Key[-1]
+            #global file_extension
+            #file_extension = os.path.splitext(file_name)[1]
+            #print "segmenting {} file".format(file_extension)
 
             # sqs.put_message(
             # QueueUrl=statusqueue
@@ -38,8 +40,8 @@ def lambda_handler(event, context):
             # status='Downloading'
             # )
             # Download the source file from s3
-            s3_client.download_file(bucket, Key, '/tmp/'+file_name)
-
+            #s3_client.download_file(bucket, Key, '/tmp/'+file_name)
+            s3.Bucket(Bucket).download_file(S3Path, LocalPath)
 
             # sqs.put_message(
             # QueueUrl=statusqueue
@@ -48,17 +50,19 @@ def lambda_handler(event, context):
             # )
 
             # Call ffmpy function
-            segment()
+            segment(LocalPath)
             global destination
 
             # Each chunk is uploaded to s3
+            FilePath, Extension = os.path.splitext(LocalPath)
             print "Uploading segments to s3..."
-            for filename in os.listdir('/tmp/SEGMENT*'):
-                destination = 'Segmented/{}'.format(filename)
-                s3_client.upload_file('/tmp/'+filename, bucket, destination)
+            for filename in os.listdir('/tmp/{}/{}*'.format(ConversionID, FilePath)):
+                if !filename.endswith('.mp3'):
+                    destination = 'Segmented/{}'.format(filename)
+                    s3_client.upload_file('/tmp/'+filename, bucket, destination)
             print "Uploading audio to s3"
             audiodestination = 'Audio/{}'.format(file_name)
-            s3_client.upload_file('/tmp/'+file_name+'.mp3', bucket, audiodestination)
+            s3_client.upload_file('{}.mp3'.format(FilePath), bucket, audiodestination)
 
             # Update status queue
             # sqs.put_message(
@@ -74,17 +78,18 @@ def lambda_handler(event, context):
 
 
 # ffmpy invocation that SEGMENTs the video into chunks
-def segment():
-    if key is not None:
+def segment(path):
+    if path is not None:
+        FilePath, Extension = os.path.splitext(path)
         f = ffmpy.FFmpeg(
-        executable='./ffmpeg/ffmpeg',
-        inputs={'/tmp/'+file_name : None},
-        outputs={'/tmp/'+file_name+'.mp3': '-c copy'}
-        )
+                executable='./ffmpeg/ffmpeg',
+                inputs={path : None},
+                outputs={FilePath +'.mp3': '-c copy'}
+                )
         ff = ffmpy.FFmpeg(
-        executable='./ffmpeg/ffmpeg',
-        inputs={'/tmp/'+file_name : None},
-        outputs={'/tmp/SEGMENT%d{}'.format(file_extension): '-acodec copy -c:a libfdk_aac -f segment -vcodec copy -reset_timestamps 1 -map 0'}
-        )
+                executable='./ffmpeg/ffmpeg',
+                inputs={path : None},
+                outputs={'{}SEGMENT%d{}'.format(FilePath, Extension): '-acodec copy -c:a libfdk_aac -f segment -vcodec copy -reset_timestamps 1 -map 0'}
+                )
         f.run()
         ff.run()
