@@ -13,15 +13,15 @@ def lambda_handler(event, context):
 
     Row = event[0]['dynamodb']['NewImage']
     Bucket = Row['Bucket']
-    Filename = Row['Filename']
+    Filename, Extension = os.path.splitext(Row['Filename'])
     Path = Row['Path']
     ConversionID = Row['ConversionID']
-    QueueMessageID = Row['QueueMessageID']
-    S3Path = "{}{}".format(Path, Filename)
-    LocalPath = "/tmp/{}/{}".format(ConversionID, Filename)
+    StatusQueueMessageID = Row['QueueMessageID']
+    S3Path = "{}{}{}".format(Path, Filename, Extension)
+    LocalPath = "/tmp/{}/{}{}".format(ConversionID, Filename, Extension)
 
     print "Bucket/ConversionID is {}, {}".format(Bucket, ConversionID)
-    print "QueueMessageID is {}".format(QueueMessageID)
+    print "StatusQueueMessageID is {}".format(StatusQueueMessageID)
 
     if not S3Path.endswith('/'):
         try:
@@ -33,7 +33,6 @@ def lambda_handler(event, context):
             #global file_extension
             #file_extension = os.path.splitext(file_name)[1]
             #print "segmenting {} file".format(file_extension)
-
             # sqs.put_message(
             # QueueUrl=statusqueue
             # ReceiptHandle=StatusReceipt
@@ -41,6 +40,7 @@ def lambda_handler(event, context):
             # )
             # Download the source file from s3
             #s3_client.download_file(bucket, Key, '/tmp/'+file_name)
+
             s3.Bucket(Bucket).download_file(S3Path, LocalPath)
 
             # sqs.put_message(
@@ -51,18 +51,13 @@ def lambda_handler(event, context):
 
             # Call ffmpy function
             segment(LocalPath)
-            global destination
 
             # Each chunk is uploaded to s3
             FilePath, Extension = os.path.splitext(LocalPath)
-            print "Uploading segments to s3..."
-            for filename in os.listdir('/tmp/{}/{}*'.format(ConversionID, FilePath)):
-                if !filename.endswith('.mp3'):
-                    destination = 'Segmented/{}'.format(filename)
-                    s3_client.upload_file('/tmp/'+filename, bucket, destination)
-            print "Uploading audio to s3"
-            audiodestination = 'Audio/{}'.format(file_name)
-            s3_client.upload_file('{}.mp3'.format(FilePath), bucket, audiodestination)
+            print "Uploading segments and audio to s3..."
+            destination = '{}/{}'.format(Path, Filename)
+            for filename in os.listdir('/tmp/{}/*'.format(ConversionID)):
+                s3_client.upload_file('/tmp/{}/{}'.format(ConversionID, filename), bucket, destination)
 
             # Update status queue
             # sqs.put_message(
@@ -84,12 +79,11 @@ def segment(path):
         f = ffmpy.FFmpeg(
                 executable='./ffmpeg/ffmpeg',
                 inputs={path : None},
-                outputs={FilePath +'.mp3': '-c copy'}
-                )
+                outputs={FilePath +'.mp3': '-c copy'})
         ff = ffmpy.FFmpeg(
                 executable='./ffmpeg/ffmpeg',
                 inputs={path : None},
-                outputs={'{}SEGMENT%d{}'.format(FilePath, Extension): '-acodec copy -c:a libfdk_aac -f segment -vcodec copy -reset_timestamps 1 -map 0'}
-                )
+                outputs={'{}SEGMENT%d{}'.format(FilePath, Extension): '-acodec copy -c:a libfdk_aac -f segment -vcodec copy -reset_timestamps 1 -map 0'})
         f.run()
         ff.run()
+        os.remove(path)
