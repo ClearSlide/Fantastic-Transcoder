@@ -21,13 +21,13 @@ def lambda_handler(event, context):
     print "Bucket/Key is {}{}".format(Bucket, Key)
     print "ConversionID is {}".format(ConversionID)
 
-    if not VideoURL.endswith('/'):
+    if not Key.endswith('/'):
         try:
             # Finagle S3 bucket naming conventions so that boto retrieves the correct file
             global split_key
-            split_key = VideoURL.split('/')
+            split_key = Key.split('/')
             global file_name
-            file_name = VideoURL[-1]
+            file_name = Key[-1]
             global file_extension
             file_extension = os.path.splitext(file_name)[1]
             print "segmenting {} file".format(file_extension)
@@ -38,7 +38,7 @@ def lambda_handler(event, context):
             # status='Downloading'
             # )
             # Download the source file from s3
-            s3_client.download_file(bucket, VideoURL, '/tmp/'+file_name)
+            s3_client.download_file(bucket, Key, '/tmp/'+file_name)
 
 
             # sqs.put_message(
