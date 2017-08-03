@@ -6,53 +6,50 @@ s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 dynamo = boto3.resource('dynamodb')
 table = dynamo.Table('FT_SegmentState')
-sqs = boto3.client('sqs')
+sqs = boto3.resource('sqs')
 statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
 
 def lambda_handler(event, context):
     # Get the object from the event and show its content type
     # This job is triggered by FT_VideoConversions
-    # global bucket
-    # bucket = event['Records'][0]['s3']['bucket']['name']
-    # global key
-    # key = event['Records'][0]['s3']['object']['key']
 
-    ConversionID = event['Records']['ConversionID']
-    SegmentID = event['Records']['SegmentID']
-    bucket = 'FTVideoConversions'
-    key = 'Original/' + ConversionID
+    Bucket = event[0]['dynamodb']['NewImage']['Bucket']
+    Key = event[0]['dynamodb']['NewImage']['Key']
+    ConversionID = event[0]['dynamodb']['NewImage']['ConversionID']
+    QueueMessageID = event[0]['dynamodb']['NewImage']['QueueMessageID']
 
-    print "key is {}".format(key)
-    print "bucket is {}".format(bucket)
+    print "Bucket/Key is {}{}".format(Bucket, Key)
+    print "ConversionID is {}".format(ConversionID)
 
-    if not key.endswith('/'):
+    if not VideoURL.endswith('/'):
         try:
             # Finagle S3 bucket naming conventions so that boto retrieves the correct file
             global split_key
-            split_key = key.split('/')
+            split_key = VideoURL.split('/')
             global file_name
-            file_name = split_key[-1]
+            file_name = VideoURL[-1]
             global file_extension
             file_extension = os.path.splitext(file_name)[1]
             print "segmenting {} file".format(file_extension)
-            # Download the source file from s3
-            sqs.put_message(
-            QueueUrl=statusqueue
-            ReceiptHandle=StatusReceipt
-            status='Downloading'
-            )
 
-            s3_client.download_file(bucket, key, '/tmp/'+file_name)
+            # sqs.put_message(
+            # QueueUrl=statusqueue
+            # ReceiptHandle=StatusReceipt
+            # status='Downloading'
+            # )
+            # Download the source file from s3
+            s3_client.download_file(bucket, VideoURL, '/tmp/'+file_name)
+
+
+            # sqs.put_message(
+            # QueueUrl=statusqueue
+            # ReceiptHandle=StatusReceipt
+            # status='Ready to process'
+            # )
 
             # Call ffmpy function
-            sqs.put_message(
-            QueueUrl=statusqueue
-            ReceiptHandle=StatusReceipt
-            status='Ready to process'
-            )
             segment()
             global destination
-
 
             # Each chunk is uploaded to s3
             print "Uploading segments to s3..."
@@ -60,15 +57,15 @@ def lambda_handler(event, context):
                 destination = 'Segmented/{}'.format(filename)
                 s3_client.upload_file('/tmp/'+filename, bucket, destination)
             print "Uploading audio to s3"
-                audiodestination = 'Audio/{}'.format(file_name)
-                s3_client.upload_file('/tmp/'+file_name+'.mp3', bucket, audiodestination)
+            audiodestination = 'Audio/{}'.format(file_name)
+            s3_client.upload_file('/tmp/'+file_name+'.mp3', bucket, audiodestination)
 
             # Update status queue
-            sqs.put_message(
-            QueueUrl=statusqueue
-            ReceiptHandle=StatusReceipt
-            status='Processing'
-            )
+            # sqs.put_message(
+            # QueueUrl=statusqueue,
+            # MessageID=MessageID
+            # status='Processing'
+            # )
 
         except Exception as e:
             print(e)
