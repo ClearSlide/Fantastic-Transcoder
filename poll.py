@@ -38,7 +38,7 @@ def lambda_handler(event, context):
             if 'Item' not in entry:
                 response = table.put_item(
                                Item={
-                                    'Bucket': Bucket
+                                    'Bucket': Bucket,
                                     'ConversionID': ConversionID,
                                     'Created': epochnow,
                                     'Filename': Filename,
