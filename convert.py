@@ -15,16 +15,16 @@ def lambda_handler(event, context):
 #    print(json.dumps(event, context))
 #    for record in event['Records']:
 #        print record
-    ConversionID = event['Records']['ConversionID']
-    SegmentID = event['Records']['SegmentID']
+    Row = event[0]['dynamodb']['NewImage']
+    ConversionID = Row['ConversionID']
+    SegmentID = Row['SegmentID']
 #    response = table.get_item(
 #    Key={
 #        'conversionID': conversion,
 #        'segmentID': segment
 #    }
 
-    global bucket
-    bucket = event['Records'][0]['s3']['bucket']['name']
+    bucket = Row['Bucket']
     global key
     key = event['Records'][0]['s3']['object']['key']
 
@@ -105,9 +105,4 @@ def transcode():
 
 # Checks if all segments are complete
 def checksegments(iterator):
-    iterator = iter(iterator)
-    try:
-        first = next(iterator)
-    except StopIteration:
-        return True
     return all(first == rest for rest in iterator)
