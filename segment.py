@@ -61,7 +61,8 @@ def lambda_handler(event, context):
                                 Item = {
                                     'Bucket': Bucket,
                                     'ConversionID': ConversionID,
-                                    'Filename': '{}{}'.format(destination, filename),
+                                    'Path': destination
+                                    'Filename': filename,
                                     'QueueMessageID': QueueMessageID,
                                     'RequestedFormats': RequestedFormats,
                                 }

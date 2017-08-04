@@ -24,9 +24,8 @@ def lambda_handler(event, context):
 #        'segmentID': segment
 #    }
 
-    bucket = Row['Bucket']
-    global key
-    key = event['Records'][0]['s3']['object']['key']
+    Bucket = Row['Bucket']
+    Path = Row['Path']
 
     print "key is {}".format(key)
     print "bucket is {}".format(bucket)
