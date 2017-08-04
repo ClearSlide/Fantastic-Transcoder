@@ -26,21 +26,26 @@ def lambda_handler(event, context):
 
     Bucket = Row['Bucket']
     Path = Row['Path']
+    Filename, Extension = os.path.splitext(Row['Filename'])
+    S3Path = "{}{}{}".format(Path, Filename, Extension)
+    LocalPath = '/tmp/{}{}'.format(Filename, Extension)
 
-    print "key is {}".format(key)
+    print "absolutepath is {}{}".format(Path, Filename)
     print "bucket is {}".format(bucket)
 
     if not key.endswith('/'):
         try:
             # Finagle S3 bucket naming conventions so that boto retrieves the correct file.
-            global split_key
-            split_key = key.split('/')
-            global file_name
-            file_name = split_key[-1]
-            print "Downloading source file..."
-            s3_client.download_file(bucket, key, '/tmp/'+file_name)
+            #global split_key
+            #split_key = key.split('/')
+            #global file_name
+            #file_name = split_key[-1]
 
-            transcode()
+            print "Downloading source file..."
+            #s3_client.download_file(bucket, key, '/tmp/'+file_name)
+            s3.Bucket(Bucket).download_file(S3Path, LocalPath)
+
+            transcode(LocalPath)
 
             global destination
             destination = 'Converted/'+transportstream
@@ -80,24 +85,22 @@ def lambda_handler(event, context):
             raise e
 
 # Converts video segment
-def transcode():
-    if key is not None:
+def transcode(path):
+    if path is not None:
+        FilePath, Extension = os.path.splitext(path)
+        Filename = path.split('/')[-1]
         print "Converting File..."
-        global convertedfile
-        convertedfile = file_name+'CONVERTED.mp4'
         ff = ffmpy.FFmpeg(
-        executable='./ffmpeg/ffmpeg',
-        inputs={'/tmp/'+file_name : None},
-        outputs={'/tmp/'+convertedfile : '-y'}
-        )
+                executable='./ffmpeg/ffmpeg',
+                inputs={path : None},
+                outputs={'/tmp/converted/{}'.format(Filename) : '-y'})
         ff.run()
+
         print "Transcoding to lossless transport stream..."
-        global transportstream
-        transportstream = file_name+'.ts'
         fff = ffmpy.FFmpeg(
         executable='./ffmpeg/ffmpeg',
-        inputs={'/tmp/'+convertedfile : None},
-        outputs={'/tmp/'+transportstream : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'}
+        inputs={'/tmp/converted/{}'.format(Filename) : None},
+        outputs={'/tmp/stream/{}'.format(Filename) : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'}
         )
         fff.run()
 
