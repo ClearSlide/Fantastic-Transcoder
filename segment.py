@@ -1,7 +1,6 @@
 import boto3, ffmpy, os
 
 s3 = boto3.resource('s3')
-s3_client = boto3.client('s3')
 dynamo = boto3.resource('dynamodb')
 table = dynamo.Table('FT_SegmentState')
 sqs = boto3.resource('sqs')
@@ -57,7 +56,7 @@ def lambda_handler(event, context):
             print "Uploading segments and audio to s3..."
             destination = '{}/{}'.format(Path, Filename)
             for filename in os.listdir('/tmp/{}/*'.format(ConversionID)):
-                s3_client.upload_file('/tmp/{}/{}'.format(ConversionID, filename), bucket, destination)
+                s3.Bucket(Bucket).upload_file('/tmp/{}/{}'.format(ConversionID, filename), destination)
 
             # Update status queue
             # sqs.put_message(
