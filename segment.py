@@ -55,8 +55,18 @@ def lambda_handler(event, context):
             FilePath, Extension = os.path.splitext(LocalPath)
             print "Uploading segments and audio to s3..."
             destination = '{}/{}'.format(Path, Filename)
-            for filename in os.listdir('/tmp/{}/*'.format(ConversionID)):
+            for filename in os.listdir('/tmp/{}/'.format(ConversionID)):
                 s3.Bucket(Bucket).upload_file('/tmp/{}/{}'.format(ConversionID, filename), destination)
+                response = table.put_item(
+                                Item = {
+                                    'Bucket': Bucket,
+                                    'ConversionID': ConversionID,
+                                    'Filename': '{}{}'.format(destination, filename),
+                                    'QueueMessageID': QueueMessageID,
+                                    'RequestedFormats': RequestedFormats,
+                                }
+                            )
+                print("PutItem succeeded: {}".format(json.dumps(response, indent=4)))
 
             # Update status queue
             # sqs.put_message(
@@ -69,7 +79,6 @@ def lambda_handler(event, context):
             print(e)
             print('ERROR! Key: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
             raise e
-
 
 # ffmpy invocation that SEGMENTs the video into chunks
 def segment(path):
