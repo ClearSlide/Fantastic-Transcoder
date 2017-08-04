@@ -60,7 +60,8 @@ def lambda_handler(event, context):
                 if filename.endswith('mp3'):
                     SegmentID = '-1'
                 else:
-                    SegmentID = os.path.splitext(filename)[1].split('SEGMENT')[1]
+                    segments = os.path.splitext(filename)[0].split('SEGMENT')
+                    SegmentID = segments[len(segments) - 1]
                 response = table.put_item(
                                 Item = {
                                     'Bucket': Bucket,
