@@ -57,6 +57,10 @@ def lambda_handler(event, context):
             destination = '{}/{}'.format(Path, Filename)
             for filename in os.listdir('/tmp/{}/'.format(ConversionID)):
                 s3.Bucket(Bucket).upload_file('/tmp/{}/{}'.format(ConversionID, filename), destination)
+                if filename.endswith('mp3'):
+                    SegmentID = '-1'
+                else:
+                    SegmentID = os.path.splitext(filename)[1].split('SEGMENT')[1]
                 response = table.put_item(
                                 Item = {
                                     'Bucket': Bucket,
@@ -65,6 +69,7 @@ def lambda_handler(event, context):
                                     'Filename': filename,
                                     'QueueMessageID': QueueMessageID,
                                     'RequestedFormats': RequestedFormats,
+                                    'SegmentID': SegmentID
                                 }
                             )
                 print("PutItem succeeded: {}".format(json.dumps(response, indent=4)))
