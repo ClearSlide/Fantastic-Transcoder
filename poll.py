@@ -30,14 +30,14 @@ def lambda_handler(event, context):
             QueueMessageID = m.message_id
 
             # Write to DynamoDB
-            dynamodb = boto3.resource('dynamodb')
-            table = dynamodb.Table('FT_VideoConversions')
+            dynamo = boto3.resource('dynamodb')
+            table = dynamo.Table('FT_VideoConversions')
 
             # If this job has not been done before, write a new row in DynamoDB, triggering Lambda 2: Segment
             entry = table.get_item(Key={'ConversionID' : ConversionID})
             if 'Item' not in entry:
                 response = table.put_item(
-                               Item={
+                                Item = {
                                     'Bucket': Bucket,
                                     'ConversionID': ConversionID,
                                     'Created': epochnow,
@@ -48,7 +48,8 @@ def lambda_handler(event, context):
                                     'Retries': 0,
                                     'Updated': epochnow,
                                     'VideoURL': VideoURL
-                                })
+                                }
+                            )
                 print("PutItem succeeded: {}".format(json.dumps(response, indent=4)))
                 #sqs.put_message(
                 #    QueueUrl=statusqueue
