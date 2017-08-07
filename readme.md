@@ -113,6 +113,7 @@ Current Maintainers:
 
 ## Contributors
 - Jonathan Tan (ClearSlide) - https://github.com/jonathanjtan
+- Barak Zhou (ClearSlide) - https://github.com/zhoubw
 
 ## Copyright
 Copyright 2017 ClearSlide, inc.
