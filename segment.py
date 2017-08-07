@@ -46,12 +46,12 @@ def lambda_handler(event, context):
                             Item = {
                                 'Bucket': Bucket,
                                 'ConversionID': ConversionID,
-                                'Path': Path,
+                                'Completed': 0,
                                 'Filename': filename,
+                                'Path': Path,
                                 'QueueMessageID': QueueMessageID,
                                 'RequestedFormats': RequestedFormats,
                                 'SegmentID': SegmentID,
-                                'Completed': 0
                             }
                         )
             print('PutItem succeeded: {}'.format(json.dumps(response, indent=4)))
