@@ -15,71 +15,62 @@ def lambda_handler(event, context):
     Row = event[0]['dynamodb']['NewImage']
     ConversionID = Row['ConversionID']
     Bucket = Row['Bucket']
-    Path = Row['Path']
-    Filename, Extension = os.path.splitext(Row['Filename'])
-    S3Path = "{}{}{}".format(Path, Filename, Extension)
-    LocalPath = "/tmp/{}/{}{}".format(ConversionID, Filename, Extension)
-
-    print "path is {}".format(Path)
-    print "bucket is {}".format(Bucket)
-    print "conversionID is {}".format(ConversionID)
-
+    S3Path = Row['Filename']
+    Filename, Extension = os.path.splitext(S3Path)
+    LocalPath = "/tmp/{}{}".format(Filename, Extension)
 
     Bucket = s3.Bucket(Bucket)
-    
-    if not S3Path.endswith('/'):
-        try:
-            # Finagle S3 bucket naming conventions so that boto retrieves the correct file.
-            print "Downloading source files..."
 
-            segments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
+    try:
+        # Finagle S3 bucket naming conventions so that boto retrieves the correct file.
+        print "Downloading source files..."
 
-            for segment_file in segments:
-                #global split_key
-                split_segment = segment_file.split('/')
-                #global file_name
-                segment_name = split_segment[-1]
+        segments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
 
-                s3_client.download_file(Bucket, segment_file, '/tmp/' + segment_name)
+        for segment in segments:
+            segment_name = segment['Filename']
+
+            s3_client.download_file(Bucket, segment_name, '/tmp/' + segment_name)
             print "Downloading audio file..."
             # Is this good enough? Or should we log/track the audio file in dynamo?
             s3_client.download_file(Bucket, 'audio' + ConversionID + '.mp3', '/tmp/' + ConversionID + '.mp3')
 
-            sqs.put_message(
+        sqs.put_message(
             QueueUrl=statusqueue
             ReceiptHandle=StatusReceipt
             status='Saving'
-            )
+        )
 
-            # concat - this overwrites the Path file
-            output_name = concat(Path, ConversionID)
+        # concat - this overwrites the S3Path file
+        output_name = concat(S3Path, ConversionID)
 
-            # upload to destination
-            destination = 'Concatenated/' + Filename
-            print "Uploading completed file to s3..."
-            s3_client.upload_file('/tmp/' + output_name, Bucket, destination)
-            sqs.put_message(
+        # upload to destination
+        destination = 'Concatenated/' + Filename
+        print "Uploading completed file to s3..."
+        s3_client.upload_file('/tmp/' + output_name, Bucket, destination)
+        sqs.put_message(
             QueueUrl=statusqueue
             ReceiptHandle=StatusReceipt
             status='Finished'
-            )
-            # Delete message from SQS queue upon successful upload to s3
-            sqs.delete_message(
+        )
+        # Delete message from SQS queue upon successful upload to s3
+        sqs.delete_message(
             QueueUrl=queue,
             ReceiptHandle=ReceiptHandle
-            )
-        except Exception as e:
-            print(e)
-            print('ERROR! Path: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(Path, Bucket))
-            raise e
+        )
+    except Exception as e:
+        print(e)
+        print('ERROR! Path: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(S3Path, Bucket))
+        raise e
 
 # Converts video segment
 def concat(Path, ConversionID):
     if Path is not None:
         file = open('/tmp/targetlist.txt', w)
         for each in natsorted(os.listdir('/tmp/*.ts'), key=lambda y: y.lower()):
+            #writes ordered list of transport streams to file
             file.write(each)
-                #writes ordered list of transport streams to file
+
         print "Concatenating video..."
         ff = ffmpy.FFmpeg(
         executable='./ffmpeg/ffmpeg',
