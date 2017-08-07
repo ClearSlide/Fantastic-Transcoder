@@ -16,7 +16,7 @@ def lambda_handler(event, context):
     Path = Row['Path']
     ConversionID = Row['ConversionID']
     StatusQueueMessageID = Row['QueueMessageID']
-    S3Path = "{}{}{}".format(Path, Filename, Extension)
+    S3Path = "{}{}".format(Filename, Extension)
     LocalPath = "/tmp/{}/{}{}".format(ConversionID, Filename, Extension)
 
     print "Bucket/ConversionID is {}, {}".format(Bucket, ConversionID)
@@ -54,9 +54,8 @@ def lambda_handler(event, context):
             # Each chunk is uploaded to s3
             FilePath, Extension = os.path.splitext(LocalPath)
             print "Uploading segments and audio to s3..."
-            destination = '{}/{}'.format(Path, Filename)
             for filename in os.listdir('/tmp/{}/'.format(ConversionID)):
-                s3.Bucket(Bucket).upload_file('/tmp/{}/{}'.format(ConversionID, filename), destination)
+                s3.Bucket(Bucket).upload_file('/tmp/{}/{}'.format(ConversionID, filename), filename)
                 if filename.endswith('mp3'):
                     SegmentID = '-1'
                 else:
@@ -66,7 +65,7 @@ def lambda_handler(event, context):
                                 Item = {
                                     'Bucket': Bucket,
                                     'ConversionID': ConversionID,
-                                    'Path': destination
+                                    'Path': Path
                                     'Filename': filename,
                                     'QueueMessageID': QueueMessageID,
                                     'RequestedFormats': RequestedFormats,

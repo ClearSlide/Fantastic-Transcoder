@@ -21,7 +21,7 @@ def lambda_handler(event, context):
     Bucket = Row['Bucket']
     Path = Row['Path']
     Filename, Extension = os.path.splitext(Row['Filename'])
-    S3Path = "{}{}{}".format(Path, Filename, Extension)
+    S3Path = "{}{}".format(Filename, Extension)
     LocalPath = '/tmp/{}{}'.format(Filename, Extension)
 
     print "absolutepath is {}{}".format(Path, Filename)
@@ -43,7 +43,7 @@ def lambda_handler(event, context):
 
             destination = '{}/Converted'.format(Path)
             print "Uploading to s3..."
-            result = s3_client.upload_file('/tmp/stream/{}.ts'.format(Filename), bucket, destination)
+            result = s3_client.upload_file('/tmp/stream/{}.ts'.format(Filename), bucket, '{}.ts'.format(Filename))
             table.update_item(
             key={
                 'SegmentID': SegmentID,
