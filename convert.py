@@ -16,6 +16,9 @@ def lambda_handler(event, context):
     Filename, Extension = os.path.splitext(Row['Filename'])
     Path = Row['Path']
     SegmentID = Row['SegmentID']
+
+    os.makedirs('/tmp/converted')
+    os.makedirs('/tmp/stream')
     S3Path = '{}{}{}'.format(Path, Filename, Extension)
     LocalPath = '/tmp/{}{}'.format(Filename, Extension)
 

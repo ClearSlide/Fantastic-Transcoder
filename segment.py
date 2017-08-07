@@ -17,6 +17,7 @@ def lambda_handler(event, context):
     Path = Row['Path']
     StatusQueueMessageID = Row['QueueMessageID']
 
+    os.makedirs('/tmp/{}'.format(ConversionID))
     S3Path = '{}{}{}'.format(Path, Filename, Extension)
     LocalPath = '/tmp/{}/{}{}'.format(ConversionID, Filename, Extension)
 
