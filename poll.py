@@ -38,11 +38,10 @@ def lambda_handler(event, context):
                 response = table.put_item(
                                 Item = {
                                     'Bucket': Bucket,
-                                    'ConcatReady': '0'
+                                    'ConcatReady': 0
                                     'ConversionID': ConversionID,
                                     'Created': epochnow,
                                     'Filename': Filename,
-                                    'Path': Path,
                                     'QueueMessageID': QueueMessageID,
                                     'RequestedFormats': RequestedFormats,
                                     'Retries': 0,

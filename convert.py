@@ -1,4 +1,5 @@
 import boto3, ffmpy, json
+from boto3.dynamodb.conditions import Key, Attr
 
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
@@ -28,16 +29,15 @@ def lambda_handler(event, context):
         print 'Uploading to s3...'
         s3_client.upload_file('/tmp/stream/{}.ts'.format(Filename), bucket, '{}.ts'.format(Filename))
         table.update_item(
-        key={
-            'SegmentID': SegmentID,
-            },
-        UpdateExpression='set Completed = 1',
+            Key={
+                'SegmentID': SegmentID,
+                },
+            UpdateExpression='set Completed = 1',
         )
 
         # Check if all segments are complete: if they are, trigger concat
-        allsegments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
-        allstatus = allsegments['Completed']
-        if all(first == rest for rest in allstatus):
+        segments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))['Items']
+        if all(s['Completed'] for s in segments):
             nexttable = dynamo.Table('FT_ConversionState')
             nexttable.update_item(
                Key={
@@ -62,8 +62,7 @@ def transcode(path):
 
         print 'Transcoding to lossless transport stream...'
         fff = ffmpy.FFmpeg(
-        executable='./ffmpeg/ffmpeg',
-        inputs={'/tmp/converted/{}'.format(Filename) : None},
-        outputs={'/tmp/stream/{}.ts'.format(Filename) : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'}
-        )
+                executable='./ffmpeg/ffmpeg',
+                inputs={'/tmp/converted/{}'.format(Filename) : None},
+                outputs={'/tmp/stream/{}.ts'.format(Filename) : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'})
         fff.run()

@@ -43,15 +43,13 @@ def lambda_handler(event, context):
                             Item = {
                                 'Bucket': Bucket,
                                 'ConversionID': ConversionID,
-                                'Path': Path
                                 'Filename': filename,
                                 'QueueMessageID': QueueMessageID,
                                 'RequestedFormats': RequestedFormats,
                                 'SegmentID': SegmentID
-                                'Completed': '0'
+                                'Completed': 0
                             }
                         )
-
             print('PutItem succeeded: {}'.format(json.dumps(response, indent=4)))
 
     except Exception as e:
