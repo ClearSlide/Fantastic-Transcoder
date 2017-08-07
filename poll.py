@@ -5,7 +5,7 @@ def lambda_handler(event, context):
     sqs = boto3.resource('sqs')
     queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
     dynamo = boto3.resource('dynamodb')
-    table = dynamo.table('FT_VideoConversions')
+    table = dynamo.Table('FT_VideoConversions')
     #statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
     epochnow = int(time.time())
 
@@ -38,11 +38,11 @@ def lambda_handler(event, context):
                 response = table.put_item(
                                 Item = {
                                     'Bucket': Bucket,
-                                    'ConcatReady': 0
+                                    'ConcatReady': 0,
                                     'ConversionID': ConversionID,
                                     'Created': epochnow,
                                     'Filename': Filename,
-                                    'Path': Path
+                                    'Path': Path,
                                     'QueueMessageID': QueueMessageID,
                                     'RequestedFormats': RequestedFormats,
                                     'Retries': 0,
