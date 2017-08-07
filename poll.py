@@ -29,7 +29,7 @@ def lambda_handler(event, context):
             Path = body['path']
             Filename = body['fileName']
             RequestedFormats = body['sizeFormat']
-            VideoURL = "https://{}.s3.amazonaws.com/{}{}".format(Bucket, Path, Filename)
+            VideoURL = 'https://{}.s3.amazonaws.com/{}{}'.format(Bucket, Path, Filename)
             QueueMessageID = m.message_id
 
             # If this job has not been done before, write a new row in DynamoDB, triggering Lambda 2: Segment
@@ -38,6 +38,7 @@ def lambda_handler(event, context):
                 response = table.put_item(
                                 Item = {
                                     'Bucket': Bucket,
+                                    'ConcatReady': '0'
                                     'ConversionID': ConversionID,
                                     'Created': epochnow,
                                     'Filename': Filename,
@@ -49,14 +50,14 @@ def lambda_handler(event, context):
                                     'VideoURL': VideoURL
                                 }
                             )
-                print("PutItem succeeded: {}".format(json.dumps(response, indent=4)))
+                print('PutItem succeeded: {}'.format(json.dumps(response, indent=4)))
             # Else, increment retries and trigger convert
             elif entry['Item']['Retries'] < 4:
                 response = table.update_item(
                                 Key={'ConversionID': ConversionID},
                                 ExpressionAttributeValues={':val': 1},
-                                UpdateExpression="set Retries = Retries + :val")
-                print("UpdateItem suceeded:{}".format(json.dumps(response, indent=4)))
+                                UpdateExpression='set Retries = Retries + :val')
+                print('UpdateItem suceeded:{}'.format(json.dumps(response, indent=4)))
             # If we've failed 3 times or are in some crazy unrecognizable state, move to deadletter queue
             else:
-                raise Exception("Redrive policy should have run.")
+                raise Exception('Redrive policy should have run.')

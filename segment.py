@@ -4,24 +4,23 @@ s3 = boto3.resource('s3')
 dynamo = boto3.resource('dynamodb')
 table = dynamo.Table('FT_SegmentState')
 sqs = boto3.resource('sqs')
-statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
+#statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
 
 # Triggered by write to FT_VideoConversions
 def lambda_handler(event, context):
 
     # Load triggering row from FT_VideoConversions and assign variables
     Row = event[0]['dynamodb']['NewImage']
-    ConversionID = Row['ConversionID']
     Bucket = Row['Bucket']
+    ConversionID = Row['ConversionID']
     Path = Row['Path']
-    Filename, Extension = os.path.splitext(Row['Filename'])
     StatusQueueMessageID = Row['QueueMessageID']
+    S3Path = Row['Filename']
+    Filename, Extension = os.path.splitext(S3Path)
+    LocalPath = '/tmp/{}/{}{}'.format(ConversionID, Filename, Extension)
 
-    S3Path = "{}{}".format(Filename, Extension)
-    LocalPath = "/tmp/{}/{}{}".format(ConversionID, Filename, Extension)
-
-    print "Bucket/ConversionID is {}, {}".format(Bucket, ConversionID)
-    print "StatusQueueMessageID is {}".format(StatusQueueMessageID)
+    print 'Bucket/ConversionID is {}, {}'.format(Bucket, ConversionID)
+    print 'StatusQueueMessageID is {}'.format(StatusQueueMessageID)
 
     try:
         s3.Bucket(Bucket).download_file(S3Path, LocalPath)
@@ -31,7 +30,7 @@ def lambda_handler(event, context):
 
         # Upload each segment to S3
         FilePath, Extension = os.path.splitext(LocalPath)
-        print "Uploading segments and audio to s3..."
+        print 'Uploading segments and audio to s3...'
         for filename in os.listdir('/tmp/{}/'.format(ConversionID)):
             s3.Bucket(Bucket).upload_file('/tmp/{}/{}'.format(ConversionID, filename), filename)
             if filename.endswith('mp3'):
@@ -53,11 +52,11 @@ def lambda_handler(event, context):
                                 'Completed': '0'
                             }
                         )
-                        
-            print("PutItem succeeded: {}".format(json.dumps(response, indent=4)))
+
+            print('PutItem succeeded: {}'.format(json.dumps(response, indent=4)))
 
     except Exception as e:
-        raise Exception("Failure during segmentation for bucket {}!".format(Bucket))
+        raise Exception('Failure during segmentation for bucket {}!'.format(Bucket))
 
 # ffmpy invocation that SEGMENTs the video into chunks
 def segment(path):
