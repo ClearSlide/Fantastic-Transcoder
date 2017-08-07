@@ -26,6 +26,11 @@ resource "aws_dynamodb_table" "video_conversions" {
   }
 
   attribute {
+    name = "Path"
+    type = "S"
+  }
+
+  attribute {
     name = "QueueMessageID"
     type = "S"
   }

@@ -42,6 +42,7 @@ def lambda_handler(event, context):
                                     'ConversionID': ConversionID,
                                     'Created': epochnow,
                                     'Filename': Filename,
+                                    'Path': Path
                                     'QueueMessageID': QueueMessageID,
                                     'RequestedFormats': RequestedFormats,
                                     'Retries': 0,

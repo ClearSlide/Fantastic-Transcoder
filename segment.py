@@ -13,9 +13,11 @@ def lambda_handler(event, context):
     Row = event[0]['dynamodb']['NewImage']
     Bucket = Row['Bucket']
     ConversionID = Row['ConversionID']
+    Filename, Extension = os.path.splitext(Row['Filename'])
+    Path = Row['Path']
     StatusQueueMessageID = Row['QueueMessageID']
-    S3Path = Row['Filename']
-    Filename, Extension = os.path.splitext(S3Path)
+
+    S3Path = '{}{}{}'.format(Path, Filename, Extension)
     LocalPath = '/tmp/{}/{}{}'.format(ConversionID, Filename, Extension)
 
     print 'Bucket/ConversionID is {}, {}'.format(Bucket, ConversionID)
@@ -31,7 +33,7 @@ def lambda_handler(event, context):
         FilePath, Extension = os.path.splitext(LocalPath)
         print 'Uploading segments and audio to s3...'
         for filename in os.listdir('/tmp/{}/'.format(ConversionID)):
-            s3.Bucket(Bucket).upload_file('/tmp/{}/{}'.format(ConversionID, filename), filename)
+            s3.Bucket(Bucket).upload_file('/tmp/{}/{}'.format(ConversionID, filename), '{}{}'.format(Path, filename))
             if filename.endswith('mp3'):
                 SegmentID = '-1'
             else:
@@ -43,6 +45,7 @@ def lambda_handler(event, context):
                             Item = {
                                 'Bucket': Bucket,
                                 'ConversionID': ConversionID,
+                                'Path': Path
                                 'Filename': filename,
                                 'QueueMessageID': QueueMessageID,
                                 'RequestedFormats': RequestedFormats,

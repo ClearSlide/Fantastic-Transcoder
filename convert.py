@@ -13,9 +13,10 @@ def lambda_handler(event, context):
     Row = event[0]['dynamodb']['NewImage']
     Bucket = Row['Bucket']
     ConversionID = Row['ConversionID']
+    Filename, Extension = os.path.splitext(Row['Filename'])
+    Path = Row['Path']
     SegmentID = Row['SegmentID']
-    S3Path = Row['Filename']
-    Filename, Extension = os.path.splitext(S3Path)
+    S3Path = '{}{}{}'.format(Path, Filename, Extension)
     LocalPath = '/tmp/{}{}'.format(Filename, Extension)
 
     print 'Converting {} with ConversionID: {}, in Bucket: {}'.format(Filename, ConversionID, Bucket)
