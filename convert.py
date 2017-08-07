@@ -18,12 +18,6 @@ def lambda_handler(event, context):
     Row = event[0]['dynamodb']['NewImage']
     ConversionID = Row['ConversionID']
     SegmentID = Row['SegmentID']
-#    response = table.get_item(
-#    Key={
-#        'conversionID': conversion,
-#        'segmentID': segment
-#    }
-
     Bucket = Row['Bucket']
     Path = Row['Path']
     Filename, Extension = os.path.splitext(Row['Filename'])
@@ -47,38 +41,27 @@ def lambda_handler(event, context):
 
             transcode(LocalPath)
 
-            global destination
-            destination = 'Converted/'+transportstream
+            destination = '{}/Converted'.format(Path)
             print "Uploading to s3..."
-            return = s3_client.upload_file('/tmp/'+transportstream, bucket, destination)
-            if return == 1:
-                table.update_item(
-                key={
-                    'SegmentID': SegmentID,
-                    },
-                UpdateExpression="set Completed = 1",
-                )
+            return = s3_client.upload_file('/tmp/stream/{}.ts'.format(Filename), bucket, destination)
+            table.update_item(
+            key={
+                'SegmentID': SegmentID,
+                },
+            UpdateExpression="set Completed = 1",
+            )
 
-                segmentstatus = table.get_item
-
-                # Update SegmentState with segment completion
-                table.update_item(
+            # Check if all segments are complete: if they are, trigger concat step
+            allsegments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
+            allstatus = allsegments['Completed']
+            if checksegments(allstatus):
+                nexttable = dynamo.Table('FT_ConversionState')
+                nexttable.update_item(
                    Key={
-                        'SegmentID': SegmentID,
+                        'ConversionID': conversionID,
                     },
-                    UpdateExpression="set completed = 1",
+                    UpdateExpression="set ConcatReady = 1",
                 )
-                # Check if all segments are complete: if they are, trigger concat step
-                allsegments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
-                allstatus = allsegments['Completed']
-                if checksegments(allstatus):
-                    nexttable = dynamo.Table('FT_ConversionState')
-                    nexttable.update_item(
-                       Key={
-                            'ConversionID': conversionID,
-                        },
-                        UpdateExpression="set ConcatReady = 1",
-                    )
         except Exception as e:
             print(e)
             print('ERROR! Key: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
@@ -100,7 +83,7 @@ def transcode(path):
         fff = ffmpy.FFmpeg(
         executable='./ffmpeg/ffmpeg',
         inputs={'/tmp/converted/{}'.format(Filename) : None},
-        outputs={'/tmp/stream/{}'.format(Filename) : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'}
+        outputs={'/tmp/stream/{}.ts'.format(Filename) : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'}
         )
         fff.run()
 
