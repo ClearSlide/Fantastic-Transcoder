@@ -4,88 +4,60 @@ s3 = boto3.resource('s3')
 dynamo = boto3.resource('dynamodb')
 table = dynamo.Table('FT_SegmentState')
 sqs = boto3.resource('sqs')
-statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
+#statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
 
+# Triggered by write to FT_VideoConversions
 def lambda_handler(event, context):
-    # Get the object from the event and show its content type
-    # This job is triggered by FT_VideoConversions
 
+    # Load triggering row from FT_VideoConversions and assign variables
     Row = event[0]['dynamodb']['NewImage']
     Bucket = Row['Bucket']
+    ConversionID = Row['ConversionID']
     Filename, Extension = os.path.splitext(Row['Filename'])
     Path = Row['Path']
-    ConversionID = Row['ConversionID']
     StatusQueueMessageID = Row['QueueMessageID']
-    S3Path = "{}{}{}".format(Path, Filename, Extension)
-    LocalPath = "/tmp/{}/{}{}".format(ConversionID, Filename, Extension)
 
-    print "Bucket/ConversionID is {}, {}".format(Bucket, ConversionID)
-    print "StatusQueueMessageID is {}".format(StatusQueueMessageID)
+    os.makedirs('/tmp/{}'.format(ConversionID))
+    S3Path = '{}{}{}'.format(Path, Filename, Extension)
+    LocalPath = '/tmp/{}/{}{}'.format(ConversionID, Filename, Extension)
 
-    if not S3Path.endswith('/'):
-        try:
-            # Finagle S3 bucket naming conventions so that boto retrieves the correct file
-            #global split_key
-            #split_key = Key.split('/')
-            #global file_name
-            #file_name = Key[-1]
-            #global file_extension
-            #file_extension = os.path.splitext(file_name)[1]
-            #print "segmenting {} file".format(file_extension)
-            # sqs.put_message(
-            # QueueUrl=statusqueue
-            # ReceiptHandle=StatusReceipt
-            # status='Downloading'
-            # )
-            # Download the source file from s3
-            #s3_client.download_file(bucket, Key, '/tmp/'+file_name)
+    print 'Bucket/ConversionID is {}, {}'.format(Bucket, ConversionID)
+    print 'StatusQueueMessageID is {}'.format(StatusQueueMessageID)
 
-            s3.Bucket(Bucket).download_file(S3Path, LocalPath)
+    try:
+        s3.Bucket(Bucket).download_file(S3Path, LocalPath)
 
-            # sqs.put_message(
-            # QueueUrl=statusqueue
-            # ReceiptHandle=StatusReceipt
-            # status='Ready to process'
-            # )
+        # Segment video with ffmpeg
+        segment(LocalPath)
 
-            # Call ffmpy function
-            segment(LocalPath)
+        # Upload each segment to S3
+        FilePath, Extension = os.path.splitext(LocalPath)
+        print 'Uploading segments and audio to s3...'
+        for filename in os.listdir('/tmp/{}/'.format(ConversionID)):
+            s3.Bucket(Bucket).upload_file('/tmp/{}/{}'.format(ConversionID, filename), '{}{}'.format(Path, filename))
+            if filename.endswith('mp3'):
+                SegmentID = '-1'
+            else:
+                segments = os.path.splitext(filename)[0].split('SEGMENT')
+                SegmentID = segments[len(segments) - 1]
 
-            # Each chunk is uploaded to s3
-            FilePath, Extension = os.path.splitext(LocalPath)
-            print "Uploading segments and audio to s3..."
-            destination = '{}/{}'.format(Path, Filename)
-            for filename in os.listdir('/tmp/{}/'.format(ConversionID)):
-                s3.Bucket(Bucket).upload_file('/tmp/{}/{}'.format(ConversionID, filename), destination)
-                if filename.endswith('mp3'):
-                    SegmentID = '-1'
-                else:
-                    segments = os.path.splitext(filename)[0].split('SEGMENT')
-                    SegmentID = segments[len(segments) - 1]
-                response = table.put_item(
-                                Item = {
-                                    'Bucket': Bucket,
-                                    'ConversionID': ConversionID,
-                                    'Path': destination
-                                    'Filename': filename,
-                                    'QueueMessageID': QueueMessageID,
-                                    'RequestedFormats': RequestedFormats,
-                                    'SegmentID': SegmentID
-                                }
-                            )
-                print("PutItem succeeded: {}".format(json.dumps(response, indent=4)))
+            # Write to FT_SegmentState
+            response = table.put_item(
+                            Item = {
+                                'Bucket': Bucket,
+                                'ConversionID': ConversionID,
+                                'Completed': 0,
+                                'Filename': filename,
+                                'Path': Path,
+                                'QueueMessageID': QueueMessageID,
+                                'RequestedFormats': RequestedFormats,
+                                'SegmentID': SegmentID,
+                            }
+                        )
+            print('PutItem succeeded: {}'.format(json.dumps(response, indent=4)))
 
-            # Update status queue
-            # sqs.put_message(
-            # QueueUrl=statusqueue,
-            # MessageID=MessageID
-            # status='Processing'
-            # )
-
-        except Exception as e:
-            print(e)
-            print('ERROR! Key: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
-            raise e
+    except Exception as e:
+        raise Exception('Failure during segmentation for bucket {}!'.format(Bucket))
 
 # ffmpy invocation that SEGMENTs the video into chunks
 def segment(path):

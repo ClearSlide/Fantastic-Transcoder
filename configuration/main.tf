@@ -103,7 +103,7 @@ resource "aws_dynamodb_table" "segment_state" {
   name           = "FT_SegmentState"
   read_capacity  = 20
   write_capacity = 20
-  hash_key       = "SegmentID"
+  hash_key       = "ConversionID"
 
 
   attribute {

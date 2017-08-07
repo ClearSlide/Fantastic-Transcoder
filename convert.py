@@ -1,110 +1,72 @@
-import boto3
-import ffmpy
-import json
+import boto3, ffmpy, json
+from boto3.dynamodb.conditions import Key, Attr
 
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 dynamo = boto3.resource('dynamodb')
 table = dynamo.Table('FT_SegmentState')
-# We don't interact with SQS in this job because it runs in parallel with so many others.
 
+# Triggered by write to FT_SegmentState
 def lambda_handler(event, context):
-    # Get the object from the event and show its content type
-    # This lambda is triggered from FT_SegmentState
 
-#    print(json.dumps(event, context))
-#    for record in event['Records']:
-#        print record
+    # Load triggering row from FT_SegmentState and assign variables
     Row = event[0]['dynamodb']['NewImage']
-    ConversionID = Row['ConversionID']
-    SegmentID = Row['SegmentID']
-#    response = table.get_item(
-#    Key={
-#        'conversionID': conversion,
-#        'segmentID': segment
-#    }
-
     Bucket = Row['Bucket']
-    Path = Row['Path']
+    ConversionID = Row['ConversionID']
     Filename, Extension = os.path.splitext(Row['Filename'])
-    S3Path = "{}{}{}".format(Path, Filename, Extension)
+    Path = Row['Path']
+    SegmentID = Row['SegmentID']
+
+    os.makedirs('/tmp/converted')
+    os.makedirs('/tmp/stream')
+    S3Path = '{}{}{}'.format(Path, Filename, Extension)
     LocalPath = '/tmp/{}{}'.format(Filename, Extension)
 
-    print "absolutepath is {}{}".format(Path, Filename)
-    print "bucket is {}".format(bucket)
+    print 'Converting {} with ConversionID: {}, in Bucket: {}'.format(Filename, ConversionID, Bucket)
 
-    if not key.endswith('/'):
-        try:
-            # Finagle S3 bucket naming conventions so that boto retrieves the correct file.
-            #global split_key
-            #split_key = key.split('/')
-            #global file_name
-            #file_name = split_key[-1]
+    try:
+        print 'Downloading segment and transcoding'
+        s3.Bucket(Bucket).download_file(S3Path, LocalPath)
+        transcode(LocalPath)
 
-            print "Downloading source file..."
-            #s3_client.download_file(bucket, key, '/tmp/'+file_name)
-            s3.Bucket(Bucket).download_file(S3Path, LocalPath)
+        # File looks like "videofileSEGMENT123.ts"
+        print 'Uploading to s3...'
+        s3_client.upload_file('/tmp/stream/{}.ts'.format(Filename), bucket, '{}.ts'.format(Filename))
+        table.update_item(
+            Key={
+                'SegmentID': SegmentID,
+                },
+            UpdateExpression='set Completed = 1',
+        )
 
-            transcode(LocalPath)
-
-            global destination
-            destination = 'Converted/'+transportstream
-            print "Uploading to s3..."
-            return = s3_client.upload_file('/tmp/'+transportstream, bucket, destination)
-            if return == 1:
-                table.update_item(
-                key={
-                    'SegmentID': SegmentID,
-                    },
-                UpdateExpression="set Completed = 1",
-                )
-
-                segmentstatus = table.get_item
-
-                # Update SegmentState with segment completion
-                table.update_item(
-                   Key={
-                        'SegmentID': SegmentID,
-                    },
-                    UpdateExpression="set completed = 1",
-                )
-                # Check if all segments are complete: if they are, trigger concat step
-                allsegments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
-                allstatus = allsegments['Completed']
-                if checksegments(allstatus):
-                    nexttable = dynamo.Table('FT_ConversionState')
-                    nexttable.update_item(
-                       Key={
-                            'ConversionID': conversionID,
-                        },
-                        UpdateExpression="set ConcatReady = 1",
-                    )
-        except Exception as e:
-            print(e)
-            print('ERROR! Key: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
-            raise e
+        # Check if all segments are complete: if they are, trigger concat
+        segments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))['Items']
+        if all(s['Completed'] for s in segments):
+            nexttable = dynamo.Table('FT_ConversionState')
+            nexttable.update_item(
+               Key={
+                    'ConversionID': conversionID,
+                },
+                UpdateExpression='set ConcatReady = 1',
+            )
+    except Exception as e:
+        raise Exception('Failure during conversion for segment {} in {}!').format(Filename, Bucket)
 
 # Converts video segment
 def transcode(path):
     if path is not None:
         FilePath, Extension = os.path.splitext(path)
         Filename = path.split('/')[-1]
-        print "Converting File..."
+        print 'Converting File...'
         ff = ffmpy.FFmpeg(
                 executable='./ffmpeg/ffmpeg',
                 inputs={path : None},
                 outputs={'/tmp/converted/{}'.format(Filename) : '-y'})
         ff.run()
 
-        print "Transcoding to lossless transport stream..."
+        print 'Transcoding to lossless transport stream...'
         fff = ffmpy.FFmpeg(
-        executable='./ffmpeg/ffmpeg',
-        inputs={'/tmp/converted/{}'.format(Filename) : None},
-        outputs={'/tmp/stream/{}'.format(Filename) : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'}
-        )
+                executable='./ffmpeg/ffmpeg',
+                inputs={'/tmp/converted/{}'.format(Filename) : None},
+                outputs={'/tmp/stream/{}.ts'.format(Filename) : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'})
         fff.run()
-
-
-# Checks if all segments are complete
-def checksegments(iterator):
-    return all(first == rest for rest in iterator)
