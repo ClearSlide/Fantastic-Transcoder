@@ -32,8 +32,9 @@ def lambda_handler(event, context):
 
             s3_client.download_file(Bucket, segment_name, '/tmp/' + segment_name)
             print "Downloading audio file..."
-            # Is this good enough? Or should we log/track the audio file in dynamo?
-            s3_client.download_file(Bucket, 'audio' + ConversionID + '.mp3', '/tmp/' + ConversionID + '.mp3')
+
+        # Is this good enough? Or should we log/track the audio file in dynamo?
+        s3_client.download_file(Bucket, 'audio' + ConversionID + '.mp3', '/tmp/' + ConversionID + '.mp3')
 
         sqs.put_message(
             QueueUrl=statusqueue
