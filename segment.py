@@ -13,7 +13,6 @@ def lambda_handler(event, context):
     Row = event[0]['dynamodb']['NewImage']
     Bucket = Row['Bucket']
     ConversionID = Row['ConversionID']
-    Path = Row['Path']
     StatusQueueMessageID = Row['QueueMessageID']
     S3Path = Row['Filename']
     Filename, Extension = os.path.splitext(S3Path)
