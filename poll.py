@@ -4,6 +4,8 @@ def lambda_handler(event, context):
 
     sqs = boto3.resource('sqs')
     queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
+    dynamo = boto3.resource('dynamodb')
+    table = dynamo.table('FT_VideoConversions')
     #statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
     epochnow = int(time.time())
 
@@ -15,6 +17,7 @@ def lambda_handler(event, context):
         VisibilityTimeout=600,
         WaitTimeSeconds=5)
 
+    # Parse messages and write relevant info to FT_VideoConversions
     for m in messages:
         if m is not None:
             # Load SQS Message as dictionary
@@ -22,16 +25,12 @@ def lambda_handler(event, context):
 
             # Assign important variables
             Bucket = body['bucket']
+            ConversionID = body['uploadID']
             Path = body['path']
             Filename = body['fileName']
-            ConversionID = body['uploadID']
             RequestedFormats = body['sizeFormat']
             VideoURL = "https://{}.s3.amazonaws.com/{}{}".format(Bucket, Path, Filename)
             QueueMessageID = m.message_id
-
-            # Write to DynamoDB
-            dynamo = boto3.resource('dynamodb')
-            table = dynamo.Table('FT_VideoConversions')
 
             # If this job has not been done before, write a new row in DynamoDB, triggering Lambda 2: Segment
             entry = table.get_item(Key={'ConversionID' : ConversionID})
@@ -51,9 +50,6 @@ def lambda_handler(event, context):
                                 }
                             )
                 print("PutItem succeeded: {}".format(json.dumps(response, indent=4)))
-                #sqs.put_message(
-                #    QueueUrl=statusqueue
-                #    status='Waiting for Encoder')
             # Else, increment retries and trigger convert
             elif entry['Item']['Retries'] < 4:
                 response = table.update_item(
