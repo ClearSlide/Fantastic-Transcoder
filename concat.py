@@ -1,6 +1,5 @@
-import boto3
-import ffmpy
-import os
+import boto3, ffmpy, os
+from natsort import natsorted
 
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
@@ -90,7 +89,7 @@ def lambda_handler(event, context):
 def concat(Path, ConversionID):
     if Path is not None:
         file = open('/tmp/targetlist.txt', w)
-        for each in sorted(os.listdir('/tmp/*.ts')):
+        for each in natsorted(os.listdir('/tmp/*.ts'), key=lambda y: y.lower()):
             file.write(each)
                 #writes ordered list of transport streams to file
         print "Concatenating video..."
