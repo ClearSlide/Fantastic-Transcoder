@@ -43,7 +43,7 @@ def lambda_handler(event, context):
 
             destination = '{}/Converted'.format(Path)
             print "Uploading to s3..."
-            return = s3_client.upload_file('/tmp/stream/{}.ts'.format(Filename), bucket, destination)
+            result = s3_client.upload_file('/tmp/stream/{}.ts'.format(Filename), bucket, destination)
             table.update_item(
             key={
                 'SegmentID': SegmentID,
