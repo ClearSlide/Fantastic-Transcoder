@@ -1,5 +1,6 @@
 import boto3
 import ffmpy
+import os
 
 s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
@@ -18,42 +19,58 @@ def lambda_handler(event, context):
     # global key
     # key = event['Records'][0]['s3']['object']['key']
 
-    global conversionID
+    #global conversionID
     # Get conversionID from dynamoDB
-    conversionID = "Temp"
-    conversionbucket = s3.get_bucket(bucket)
+    #conversionID = "Temp"
+    #conversionbucket = s3.get_bucket(bucket)
 
-    print "key is {}".format(key)
-    print "bucket is {}".format(bucket)
-    print "conversionID is {}".format(conversionID)
+    Row = event[0]['dynamodb']['NewImage']
+    ConversionID = Row['ConversionID']
+    Bucket = Row['Bucket']
+    Path = Row['Path']
+    Filename, Extension = os.path.splitext(Row['Filename'])
+    S3Path = "{}{}{}".format(Path, Filename, Extension)
+    LocalPath = "/tmp/{}/{}{}".format(ConversionID, Filename, Extension)
 
-    if not key.endswith('/'):
+    print "path is {}".format(Path)
+    print "bucket is {}".format(Bucket)
+    print "conversionID is {}".format(ConversionID)
+
+
+    Bucket = s3.Bucket(Bucket)
+    
+    if not S3Path.endswith('/'):
         try:
             # Finagle S3 bucket naming conventions so that boto retrieves the correct file.
             print "Downloading source files..."
-            for targetfile in list(conversionbucket.list("Converted/"+conversionID, "")):
-                global split_key
-                split_key = targetfile.split('/')
-                global file_name
-                file_name = split_key[-1]
 
-                s3_client.download_file(bucket, targetfile, '/tmp/'+file_name)
+            segments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))
+
+            for segment_file in segments:
+                #global split_key
+                split_segment = segment_file.split('/')
+                #global file_name
+                segment_name = split_segment[-1]
+
+                s3_client.download_file(Bucket, segment_file, '/tmp/' + segment_name)
             print "Downloading audio file..."
             # Is this good enough? Or should we log/track the audio file in dynamo?
-            s3_client.download_file(bucket, 'audio'+conversionID+'.mp3', '/tmp/'+conversionID+'.mp3')
-            # Verify that the current number of segments have been downloaded
+            s3_client.download_file(Bucket, 'audio' + ConversionID + '.mp3', '/tmp/' + ConversionID + '.mp3')
 
+            # Verify that the current number of segments have been downloaded
             sqs.put_message(
             QueueUrl=statusqueue
             ReceiptHandle=StatusReceipt
             status='Saving'
             )
-            concat()
 
-            global destination
-            destination = 'Concatenated/'+file_name
+            # concat
+            output_name = concat(Path, ConversionID)
+
+            # upload to destination
+            destination = 'Concatenated/' + Filename
             print "Uploading completed file to s3..."
-            s3_client.upload_file('/tmp/'+convertedfile, bucket, destination)
+            s3_client.upload_file('/tmp/' + output_name, Bucket, destination)
             sqs.put_message(
             QueueUrl=statusqueue
             ReceiptHandle=StatusReceipt
@@ -66,12 +83,12 @@ def lambda_handler(event, context):
             )
         except  Exception as e:
             print(e)
-            print('ERROR! Key: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(key, bucket))
+            print('ERROR! Path: {} Bucket: {}. Make sure they exist and your bucket is in the same region as this function.'.format(Path, Bucket))
             raise e
 
 # Converts video segment
-def concat():
-    if key is not None:
+def concat(Path, ConversionID):
+    if Path is not None:
         file = open('/tmp/targetlist.txt', w)
         for each in sorted(os.listdir('/tmp/*.ts')):
             file.write(each)
@@ -80,14 +97,19 @@ def concat():
         ff = ffmpy.FFmpeg(
         executable='./ffmpeg/ffmpeg',
         inputs={'/tmp/targetlist.txt' : '-f concat -safe 0'},
-        outputs={'/tmp/'+key : '-y -c copy -bsf:a aac_adtstoasc'}
+        outputs={'/tmp/' + Path : '-y -c copy -bsf:a aac_adtstoasc'}
         )
         ff.run()
+
+        output_name = '/tmp/' + Path + '-merged'
         fff=ffmpy.FFmpeg(
         executable='./ffmpeg/ffmpeg',
         inputs={
-        '/tmp/'+key : [None],
-        '/tmp/'+conversionID+'.mp3' : [None]
+        '/tmp/' + Path : [None],
+        '/tmp/' + ConversionID + '.mp3' : [None]
         },
-        outputs={'/tmp/'+key+'-merged' : '-c:v copy -c:a aac -strict experimental'}
+        outputs={'/tmp/' + output_name : '-c:v copy -c:a aac -strict experimental'}
         )
+
+        file.close()
+        return output_name
