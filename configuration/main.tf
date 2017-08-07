@@ -26,11 +26,6 @@ resource "aws_dynamodb_table" "video_conversions" {
   }
 
   attribute {
-    name = "Path"
-    type = "S"
-  }
-
-  attribute {
     name = "QueueMessageID"
     type = "S"
   }
@@ -103,7 +98,7 @@ resource "aws_dynamodb_table" "segment_state" {
   name           = "FT_SegmentState"
   read_capacity  = 20
   write_capacity = 20
-  hash_key       = "SegmentID"
+  hash_key       = "ConversionID"
 
 
   attribute {
