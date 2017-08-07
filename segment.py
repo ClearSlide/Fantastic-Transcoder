@@ -46,11 +46,11 @@ def lambda_handler(event, context):
                             Item = {
                                 'Bucket': Bucket,
                                 'ConversionID': ConversionID,
-                                'Path': Path
+                                'Path': Path,
                                 'Filename': filename,
                                 'QueueMessageID': QueueMessageID,
                                 'RequestedFormats': RequestedFormats,
-                                'SegmentID': SegmentID
+                                'SegmentID': SegmentID,
                                 'Completed': 0
                             }
                         )
