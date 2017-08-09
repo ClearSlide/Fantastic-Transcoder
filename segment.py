@@ -10,14 +10,20 @@ sqs = boto3.resource('sqs')
 def lambda_handler(event, context):
 
     # Load triggering row from FT_VideoConversions and assign variables
-    Row = event[0]['dynamodb']['NewImage']
-    Bucket = Row['Bucket']
-    ConversionID = Row['ConversionID']
-    Filename, Extension = os.path.splitext(Row['Filename'])
-    Path = Row['Path']
-    StatusQueueMessageID = Row['QueueMessageID']
+    print "printing records/0/dynamo/newimage"
+    print event['Records'][0]['dynamodb']['NewImage']
+    Row = event['Records'][0]['dynamodb']['NewImage']
+    Bucket = Row['Bucket']['S']
+    ConversionID = Row['ConversionID']['S']
+    Filename, Extension = os.path.splitext(Row['Filename']['S'])
+    Path = Row['Path']['S']
+    StatusQueueMessageID = Row['QueueMessageID']['S']
 
-    os.makedirs('/tmp/{}'.format(ConversionID))
+    try:
+        os.makedirs('/tmp/{}'.format(ConversionID))
+    except Exception as e:
+        print "Directory already exists? Lambda is reusing a container."
+
     S3Path = '{}{}{}'.format(Path, Filename, Extension)
     LocalPath = '/tmp/{}/{}{}'.format(ConversionID, Filename, Extension)
 
@@ -57,6 +63,7 @@ def lambda_handler(event, context):
             print('PutItem succeeded: {}'.format(json.dumps(response, indent=4)))
 
     except Exception as e:
+        print e
         raise Exception('Failure during segmentation for bucket {}!'.format(Bucket))
 
 # ffmpy invocation that SEGMENTs the video into chunks
@@ -64,13 +71,12 @@ def segment(path):
     if path is not None:
         FilePath, Extension = os.path.splitext(path)
         f = ffmpy.FFmpeg(
-                executable='./ffmpeg/ffmpeg',
                 inputs={path : None},
-                outputs={FilePath +'.mp3': '-c copy'})
+                outputs={'{}.mp3'.format(FilePath): '-c copy'})
         ff = ffmpy.FFmpeg(
-                executable='./ffmpeg/ffmpeg',
                 inputs={path : None},
                 outputs={'{}SEGMENT%d{}'.format(FilePath, Extension): '-acodec copy -c:a libfdk_aac -f segment -vcodec copy -reset_timestamps 1 -map 0'})
         f.run()
         ff.run()
+        print "Segmenting done~"
         os.remove(path)
