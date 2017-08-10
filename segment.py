@@ -70,9 +70,11 @@ def segment(path):
     if path is not None:
         FilePath, Extension = os.path.splitext(path)
         f = ffmpy.FFmpeg(
+                executable='./ffmpeg/ffmpeg',
                 inputs={path : None},
                 outputs={'{}.mp3'.format(FilePath): '-c copy'})
         ff = ffmpy.FFmpeg(
+                executable='./ffmpeg/ffmpeg',
                 inputs={path : None},
                 outputs={'{}SEGMENT%d{}'.format(FilePath, Extension): '-acodec copy -c:a libfdk_aac -f segment -vcodec copy -reset_timestamps 1 -map 0'})
         f.run()
