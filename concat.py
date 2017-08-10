@@ -12,15 +12,18 @@ queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
 def lambda_handler(event, context):
     # This job is triggered by FT_ConversionState
 
-    Row = event[0]['dynamodb']['NewImage']
-    Bucket = Row['Bucket']
-    ConversionID = Row['ConversionID']
-    Filename, Extension = os.path.splitext(Row['Filename'])
-    Path = Row['Path']
+    Row = event['Records'][0]['dynamodb']['NewImage']
+    Bucket = Row['Bucket']['S']
+    ConversionID = Row['ConversionID']['S']
+    Filename, Extension = os.path.splitext(Row['Filename']['S'])
+    Path = Row['Path']['S']
     S3Path = '{}{}{}'.format(Path, Filename, Extension)
     LocalPath = '/tmp/{}/'.format(ConversionID)
 
-    os.makedirs('/tmp/{}'.format(ConversionID))
+    try:
+        os.makedirs('/tmp/{}'.format(ConversionID))
+    except Exception as e:
+        print "Directory already exists? Lambda is reusing a container."
 
     try:
         print 'Downloading audio/video files...'
