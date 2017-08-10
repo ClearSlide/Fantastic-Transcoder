@@ -63,8 +63,7 @@ def lambda_handler(event, context):
             print('PutItem succeeded: {}'.format(json.dumps(response, indent=4)))
 
     except Exception as e:
-        print e
-        raise Exception('Failure during segmentation for bucket {}!'.format(Bucket))
+        raise Exception('Failure during segmentation for file {} in bucket {}!'.format(Filename, Bucket))
 
 # ffmpy invocation that SEGMENTs the video into chunks
 def segment(path):

@@ -75,7 +75,7 @@ There are three tables within DynamoDB. ConversionID is the shared key between t
 fileName : video.mp4
 bucket : bucket_name
 uploadID : THIS15ANUPL0ADID
-path : /path/to/your/thing/
+path : path/to/your/thing/
 sizeFormat : {'1080p': ['MP4'], 'original': ['MP4'], '480p': ['MP4']}
 s3_url : https://bucket_name.s3.amazonaws.com/path/to/your/thing/video.mp4
 ```
