@@ -10,15 +10,19 @@ table = dynamo.Table('FT_SegmentState')
 def lambda_handler(event, context):
 
     # Load triggering row from FT_SegmentState and assign variables
-    Row = event[0]['dynamodb']['NewImage']
-    Bucket = Row['Bucket']
-    ConversionID = Row['ConversionID']
-    Filename, Extension = os.path.splitext(Row['Filename'])
-    Path = Row['Path']
-    SegmentID = Row['SegmentID']
+    Row = event['Records'][0]['dynamodb']['NewImage']
+    Bucket = Row['Bucket']['S']
+    ConversionID = Row['ConversionID']['S']
+    Filename, Extension = os.path.splitext(Row['Filename']['S'])
+    Path = Row['Path']['S']
+    SegmentID = Row['SegmentID']['S']
 
-    os.makedirs('/tmp/converted')
-    os.makedirs('/tmp/stream')
+    try:
+        os.makedirs('/tmp/converted')
+        os.makedirs('/tmp/stream')
+    except Exception as e:
+        print "Directories already exist? Lambda is reusing a container."
+
     S3Path = '{}{}{}'.format(Path, Filename, Extension)
     LocalPath = '/tmp/{}{}'.format(Filename, Extension)
 
