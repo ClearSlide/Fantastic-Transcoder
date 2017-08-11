@@ -4,7 +4,7 @@ s3 = boto3.resource('s3')
 dynamo = boto3.resource('dynamodb')
 table = dynamo.Table('FT_SegmentState')
 sqs = boto3.resource('sqs')
-#statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
+#statusqueue = sqs.Queue(sqs.get_queue_by_name(QueueName='FT_status_queue'))
 
 # Triggered by write to FT_VideoConversions
 def lambda_handler(event, context):
@@ -31,11 +31,42 @@ def lambda_handler(event, context):
     print 'StatusQueueMessageID is {}'.format(StatusQueueMessageID)
 
     try:
+        '''
+        statusqueue.send_message(
+            MessageBody='Downloading source from S3...',
+            MessageAttributes={
+                'ConversionID': {
+                    'StringValue': ConversionID,
+                    'DataType': 'String'
+                }
+            }
+        )'''
+
         s3.Bucket(Bucket).download_file(S3Path, LocalPath)
 
+        '''
+        statusqueue.send_message(
+            MessageBody='Segmenting video...',
+            MessageAttributes={
+                'ConversionID': {
+                    'StringValue': ConversionID,
+                    'DataType': 'String'
+                }
+            }
+        )'''
         # Segment video with ffmpeg
         segment(LocalPath)
 
+        '''
+        statusqueue.send_message(
+            MessageBody='Uploading segments to S3',
+            MessageAttributes={
+                'ConversionID': {
+                    'StringValue': ConversionID,
+                    'DataType': 'String'
+                }
+            }
+        )'''
         # Upload each segment to S3
         FilePath, Extension = os.path.splitext(LocalPath)
         print 'Uploading segments and audio to s3...'

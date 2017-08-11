@@ -7,7 +7,7 @@ dynamo = boto3.resource('dynamodb')
 table = dynamo.Table('FT_VideoConversions')
 sqs = boto3.client('sqs')
 queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
-#statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
+#statusqueue = sqs.Queue(sqs.get_queue_by_name(QueueName='FT_status_queue'))
 
 def lambda_handler(event, context):
     # This job is triggered by FT_ConversionState
@@ -26,6 +26,17 @@ def lambda_handler(event, context):
         print "Directory already exists? Lambda is reusing a container."
 
     try:
+        '''
+        statusqueue.send_message(
+            MessageBody='Downloading segments from S3 for concatenation...',
+            MessageAttributes={
+                'ConversionID': {
+                    'StringValue': ConversionID,
+                    'DataType': 'String'
+                }
+            }
+        )'''
+
         print 'Downloading audio/video files...'
         segments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))['Items']
         for segment in segments:
@@ -34,27 +45,44 @@ def lambda_handler(event, context):
             segPath = '{}{}'.format(Path, name)
             s3.Bucket(Bucket).download_file(segPath, '{}{}'.format(LocalPath, name))
 
-        #sqs.put_message(
-        #    QueueUrl=statusqueue
-        #    ReceiptHandle=StatusReceipt
-        #    status='Saving')
+        '''
+        statusqueue.send_message(
+            MessageBody='Concatenating...',
+            MessageAttributes={
+                'ConversionID': {
+                    'StringValue': ConversionID,
+                    'DataType': 'String'
+                }
+            }
+        )'''
 
         # concat - this overwrites the S3Path file
         upload = concat(LocalPath)
 
+        '''
+        statusqueue.send_message(
+            MessageBody='Uploading concatenated file to S3...',
+            MessageAttributes={
+                'ConversionID': {
+                    'StringValue': ConversionID,
+                    'DataType': 'String'
+                }
+            }
+        )'''
         # upload to destination
         print 'Uploading completed file to s3...'
         s3_client.upload_file(upload, Bucket, Path)
 
-        #sqs.put_message(
-        #    QueueUrl=statusqueue
-        #    ReceiptHandle=StatusReceipt
-        #    status='Finished')
-        # Delete message from SQS queue upon successful upload to s3
-        #sqs.delete_message(
-        #    QueueUrl=queue,
-        #    ReceiptHandle=ReceiptHandle
-        #)
+        '''
+        statusqueue.send_message(
+            MessageBody='Finished fantastically transcoding your video.',
+            MessageAttributes={
+                'ConversionID': {
+                    'StringValue': ConversionID,
+                    'DataType': 'String'
+                }
+            }
+        )'''
     except Exception as e:
         raise Exception('Failure during concatenation for ConversionID {} in bucket {}!'.format(ConversionID, Bucket))
 

@@ -6,7 +6,7 @@ def lambda_handler(event, context):
     queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
     dynamo = boto3.resource('dynamodb')
     table = dynamo.Table('FT_VideoConversions')
-    #statusqueue = sqs.get_queue_by_name(QueueName='FT_status_queue')
+    #statusqueue = sqs.Queue(sqs.get_queue_by_name(QueueName='FT_status_queue'))
     epochnow = int(time.time())
 
     # Accept message from SQS
@@ -51,6 +51,16 @@ def lambda_handler(event, context):
                                 }
                             )
                 print('PutItem succeeded: {}'.format(json.dumps(response, indent=4)))
+                '''
+                statusqueue.send_message(
+                    MessageBody='Waiting for encoder...',
+                    MessageAttributes={
+                        'ConversionID': {
+                            'StringValue': ConversionID,
+                            'DataType': 'String'
+                        }
+                    }
+                )'''
             # Else, increment retries and trigger convert
             elif entry['Item']['Retries'] < 4:
                 response = table.update_item(
