@@ -7,7 +7,6 @@ def lambda_handler(event, context):
     dynamo = boto3.resource('dynamodb')
     table = dynamo.Table('FT_VideoConversions')
     #statusqueue = sqs.Queue(sqs.get_queue_by_name(QueueName='FT_status_queue'))
-    epochnow = int(time.time())
 
     # Accept message from SQS
     messages = queue.receive_messages(
@@ -29,9 +28,9 @@ def lambda_handler(event, context):
             Path = body['path']
             Filename = body['fileName']
             RequestedFormats = body['sizeFormat']
-            VideoURL = 'https://{}.s3.amazonaws.com/{}{}'.format(Bucket, Path, Filename)
             QueueMessageID = m.message_id
-
+            epochnow = int(time.time())
+            print "Bucket={} ConversionID={} Path={} Filename={} RequestedFormats={} VideoURL={} QueueMessageID={} epochnow={}".format(Bucket, ConversionID, Path, Filename, RequestedFormats, VideoURL, QueueMessageID, epochnow)
             # If this job has not been done before, write a new row in DynamoDB, triggering Lambda 2: Segment
             entry = table.get_item(Key={'ConversionID' : ConversionID})
             if 'Item' not in entry:
