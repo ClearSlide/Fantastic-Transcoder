@@ -8,7 +8,7 @@
   virtualenv env
   source $FTPATH/env/bin/activate
   pip install ffmpy
-  pip install boto3
+
   ## Install ffmpeg
   yum update
   yum -y install autoconf automake build-essential git-core libass-devel.x86_64 libgpac-dev libsdl1.2-dev libtheora-dev libtool libx264-dev libvdpau-dev libvorbis-dev libx11-dev libxext-dev libxfixes-dev pkg-config texi2html zlib1g-dev libmp3lame-dev nasm gcc yasm && true
@@ -55,20 +55,19 @@
   # Bundle lambda packages
   rm $FTPATH/poll.zip
   cd $FTPATH;zip -9 poll.zip poll.py
-  cd $FTPATH;zip -r9 poll.zip ffmpeg
-  cd $FTPATH;zip -r9 poll.zip env/lib/python2.7/site-packages/*
+  cd $FTPATH/env/lib/python2.7/site-packages/;zip -r9 $FTPATH/poll.zip ./*
 
   rm $FTPATH/segment.zip
   cd $FTPATH;zip -9 segment.zip segment.py
   cd $FTPATH;zip -r9 segment.zip ffmpeg
-  cd $FTPATH;zip -r9 segment.zip env/lib/python2.7/site-packages/*
+  cd $FTPATH/env/lib/python2.7/site-packages;zip -r9 $FTPATH/segment.zip ./*
 
   rm $FTPATH/convert.zip
   cd $FTPATH;zip -9 convert.zip convert.py
   cd $FTPATH;zip -r9 convert.zip ffmpeg
-  cd $FTPATH;zip -r9 convert.zip env/lib/python2.7/site-packages/*
+  cd $FTPATH/env/lib/python2.7/site-packages;zip -r9 $FTPATH/convert.zip ./*
 
   rm $FTPATH/concat.zip
   cd $FTPATH;zip -9 concat.zip concat.py
   cd $FTPATH;zip -r9 concat.zip ffmpeg
-  cd $FTPATH;zip -r9 concat.zip env/lib/python2.7/site-packages/*
+  cd $FTPATH/env/lib/python2.7/site-packages;zip -r9 $FTPATH/concat.zip ./*
