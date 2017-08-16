@@ -11,80 +11,82 @@ queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
 
 def lambda_handler(event, context):
     # This job is triggered by FT_ConversionState
-
-    Row = event['Records'][0]['dynamodb']['NewImage']
-    Bucket = Row['Bucket']['S']
-    ConversionID = Row['ConversionID']['S']
-    Filename, Extension = os.path.splitext(Row['Filename']['S'])
-    Path = Row['Path']['S']
-    S3Path = '{}{}{}'.format(Path, Filename, Extension)
-    LocalPath = '/tmp/{}/'.format(ConversionID)
-
     try:
-        os.makedirs('/tmp/{}'.format(ConversionID))
-    except Exception as e:
-        print "Directory already exists? Lambda is reusing a container."
+        Row = event['Records'][0]['dynamodb']['NewImage']
+        Bucket = Row['Bucket']['S']
+        ConversionID = Row['ConversionID']['S']
+        Filename, Extension = os.path.splitext(Row['Filename']['S'])
+        Path = Row['Path']['S']
+        S3Path = '{}{}{}'.format(Path, Filename, Extension)
+        LocalPath = '/tmp/{}/'.format(ConversionID)
+    except KeyError:
+        print "DynamoDB records are incomplete!"
+    else:
+        try:
+            os.makedirs('/tmp/{}'.format(ConversionID))
+        except Exception as e:
+            print "Directory already exists? Lambda is reusing a container."
 
-    try:
-        '''
-        statusqueue.send_message(
-            MessageBody='Downloading segments from S3 for concatenation...',
-            MessageAttributes={
-                'ConversionID': {
-                    'StringValue': ConversionID,
-                    'DataType': 'String'
+        try:
+            '''
+            statusqueue.send_message(
+                MessageBody='Downloading segments from S3 for concatenation...',
+                MessageAttributes={
+                    'ConversionID': {
+                        'StringValue': ConversionID,
+                        'DataType': 'String'
+                    }
                 }
-            }
-        )'''
+            )'''
 
-        print 'Downloading audio/video files...'
-        segments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))['Items']
-        for segment in segments:
-            # Assuming segments share the same path as their original file.
-            name = segment['Filename']
-            segPath = '{}{}'.format(Path, name)
-            s3.Bucket(Bucket).download_file(segPath, '{}{}'.format(LocalPath, name))
+            print 'Downloading audio/video files...'
+            segments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))['Items']
+            for segment in segments:
+                # Assuming segments share the same path as their original file.
+                name = segment['Filename']
+                segPath = '{}{}'.format(Path, name)
+                s3.Bucket(Bucket).download_file(segPath, '{}{}'.format(LocalPath, name))
 
-        '''
-        statusqueue.send_message(
-            MessageBody='Concatenating...',
-            MessageAttributes={
-                'ConversionID': {
-                    'StringValue': ConversionID,
-                    'DataType': 'String'
+            '''
+            statusqueue.send_message(
+                MessageBody='Concatenating...',
+                MessageAttributes={
+                    'ConversionID': {
+                        'StringValue': ConversionID,
+                        'DataType': 'String'
+                    }
                 }
-            }
-        )'''
+            )'''
 
-        # concat - this overwrites the S3Path file
-        upload = concat(LocalPath)
+            # concat - this overwrites the S3Path file
+            upload = concat(LocalPath)
 
-        '''
-        statusqueue.send_message(
-            MessageBody='Uploading concatenated file to S3...',
-            MessageAttributes={
-                'ConversionID': {
-                    'StringValue': ConversionID,
-                    'DataType': 'String'
+            '''
+            statusqueue.send_message(
+                MessageBody='Uploading concatenated file to S3...',
+                MessageAttributes={
+                    'ConversionID': {
+                        'StringValue': ConversionID,
+                        'DataType': 'String'
+                    }
                 }
-            }
-        )'''
-        # upload to destination
-        print 'Uploading completed file to s3...'
-        s3_client.upload_file(upload, Bucket, Path)
+            )'''
+            # upload to destination
+            print 'Uploading completed file to s3...'
+            s3_client.upload_file(upload, Bucket, Path)
 
-        '''
-        statusqueue.send_message(
-            MessageBody='Finished fantastically transcoding your video.',
-            MessageAttributes={
-                'ConversionID': {
-                    'StringValue': ConversionID,
-                    'DataType': 'String'
+            '''
+            statusqueue.send_message(
+                MessageBody='Finished fantastically transcoding your video.',
+                MessageAttributes={
+                    'ConversionID': {
+                        'StringValue': ConversionID,
+                        'DataType': 'String'
+                    }
                 }
-            }
-        )'''
-    except Exception as e:
-        raise Exception('Failure during concatenation for ConversionID {} in bucket {}!'.format(ConversionID, Bucket))
+            )'''
+        except Exception as e:
+            raise Exception('Failure during concatenation for ConversionID {} in bucket {}!'.format(ConversionID, Bucket))
 
 # Converts video segment, assumes path is a dir
 def concat(path):

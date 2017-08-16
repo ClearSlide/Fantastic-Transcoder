@@ -18,7 +18,7 @@ def lambda_handler(event, context):
         Filename, Extension = os.path.splitext(Row['Filename']['S'])
         Path = Row['Path']['S']
         StatusQueueMessageID = Row['QueueMessageID']['S']
-    except MalformedDynamoRecordError:
+    except KeyError:
         print "DynamoDB records are incomplete!"
     else:
         try:
