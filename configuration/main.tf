@@ -103,7 +103,7 @@ resource "aws_dynamodb_table" "segment_state" {
   name           = "FT_SegmentState"
   read_capacity  = 20
   write_capacity = 20
-  hash_key       = "ConversionID"
+  hash_key       = "SegmentID"
 
 
   attribute {
@@ -130,6 +130,31 @@ resource "aws_dynamodb_table" "segment_state" {
     name = "ConversionFormat"
     type = "S"
   }
+
+  attribute {
+    name = "Path"
+    type = "S"
+  }
+
+  attribute {
+    name = "Filename"
+    type = "S"
+  }
+
+  attribute {
+    name = "Bucket"
+    type = "S"
+  }
+
+  global_secondary_index {
+     name               = "ConversionIDIndex"
+     hash_key           = "SegmentID"
+     range_key          = "ConversionID"
+     write_capacity     = 10
+     read_capacity      = 10
+     projection_type    = "INCLUDE"
+     non_key_attributes = ["Path", "Filename", "Bucket"]
+   }
 
   tags {
     Name        = "SegmentState"

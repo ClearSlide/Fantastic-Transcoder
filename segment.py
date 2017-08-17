@@ -19,7 +19,7 @@ def lambda_handler(event, context):
         StatusQueueMessageID = Row['QueueMessageID']['S']
         RequestedFormats = Row['RequestedFormats']['S']
     except KeyError:
-        print "DynamoDB records are incomplete!"
+        print "DynamoDB records are incomplete! {}".format(KeyError)
     else:
         if Path == 'NULL':
             S3Path = '{}{}'.format(Filename, Extension)
@@ -97,7 +97,7 @@ def lambda_handler(event, context):
                 SegmentID = '-1'
             else:
                 segments = os.path.splitext(filename)[0].split('SEGMENT')
-                SegmentID = segments[len(segments) - 1]
+                SegmentID = ConversionID + segments[len(segments) - 1]
                 print "preparing dynamo statement for SegmentID {}".format(SegmentID)
             writeattempts = 0
             while writeattempts < 3:
