@@ -17,6 +17,7 @@ def lambda_handler(event, context):
         Filename, Extension = os.path.splitext(Row['Filename']['S'])
         Path = Row['Path']['S']
         SegmentID = Row['SegmentID']['S']
+        RequestedFormats = Row['RequestedFormats']['M']
     except KeyError:
         print "DynamoDB records are incomplete!"
     else:
@@ -43,9 +44,9 @@ def lambda_handler(event, context):
         # File looks like "videofileSEGMENT123.ts"
         print 'Uploading to s3...'
         try:
-            s3_client.upload_file('/tmp/stream/{}.ts'.format(Filename), bucket, '{}.ts'.format(Filename))
+            s3_client.upload_file('/tmp/stream/{}.ts'.format(Filename), Bucket, '{}.ts'.format(Filename))
         except Exception as S3UploadError:
-            print "S3 Upload of {} failed. Check region, permissions, etc... {}".format(Filename, S3DownloadError)
+            print "S3 Upload of {} failed. Check region, permissions, etc... {}".format(Filename, S3UploadError)
 
         try:
             table.update_item(
@@ -58,7 +59,7 @@ def lambda_handler(event, context):
             print "DynamoDB update of FT_SegmentState failed. Check table exists, permissions, etc... {}".format(DynamoUpdateError)
 
         # Check if all segments are complete: if they are, trigger concat
-        segments = table.query(KeyConditionExpression=Key('ConversionID').eq(ConversionID))['Items']
+        segments = table.query(IndexName='SegmentID-ConversionID-index',KeyConditionExpression=Key('ConversionID').eq(ConversionID))['Items']
         if all(s['Completed'] for s in segments):
             nexttable = dynamo.Table('FT_ConversionState')
             try:
@@ -66,7 +67,8 @@ def lambda_handler(event, context):
                    Key={
                         'ConversionID': conversionID,
                     },
-                    UpdateExpression='set ConcatReady = 1',
+                    UpdateExpression="SET ConcatReady = :updated",
+                    ExpressionAttributeValues={':updated': '1'}
                 )
             except Exception as DynamoUpdateError:
                 print "DynamoDB update of FT_ConversionState failed. Check table exists, permissions, etc... {}".format(DynamoUpdateError)
@@ -75,16 +77,23 @@ def transcode(path):
     if path is not None:
         FilePath, Extension = os.path.splitext(path)
         Filename = path.split('/')[-1]
-        print 'Converting File...'
-        ff = ffmpy.FFmpeg(
+        convertedfile = Filename+'CONVERTED.mp4'
+        print 'Converting File {} to Requested format with destination {}'.format(path, convertedfile)
+        try:
+            ff = ffmpy.FFmpeg(
                 executable='./ffmpeg/ffmpeg',
                 inputs={path : None},
-                outputs={'/tmp/converted/{}'.format(Filename) : '-y'})
-        ff.run()
+                outputs={'/tmp/'+convertedfile : '-y'})
+            ff.run()
+        except Exception as FFFail:
+            print "something went wrong during transcoding step! {}".format(FFFail)
 
         print 'Transcoding to lossless transport stream...'
-        fff = ffmpy.FFmpeg(
-                executable='./ffmpeg/ffmpeg',
-                inputs={'/tmp/converted/{}'.format(Filename) : None},
-                outputs={'/tmp/stream/{}.ts'.format(Filename) : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'})
-        fff.run()
+        try:
+            fff = ffmpy.FFmpeg(
+                    executable='./ffmpeg/ffmpeg',
+                    inputs={'/tmp/'+convertedfile : None},
+                    outputs={'/tmp/'+convertedfile+'.ts' : '-y -c copy -bsf:v h264_mp4toannexb -f mpegts'})
+            fff.run()
+        except Exception as FFFail:
+            print "something went wrong during transport step! {}".format(FFFail)

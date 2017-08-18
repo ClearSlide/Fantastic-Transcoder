@@ -147,7 +147,7 @@ resource "aws_dynamodb_table" "segment_state" {
   }
 
   global_secondary_index {
-     name               = "ConversionIDIndex"
+     name               = "SegmentID-ConversionID-index"
      hash_key           = "SegmentID"
      range_key          = "ConversionID"
      write_capacity     = 10

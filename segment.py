@@ -17,7 +17,7 @@ def lambda_handler(event, context):
         Filename, Extension = os.path.splitext(Row['Filename']['S'])
         Path = Row['Path']['S']
         StatusQueueMessageID = Row['QueueMessageID']['S']
-        RequestedFormats = Row['RequestedFormats']['S']
+        RequestedFormats = Row['RequestedFormats']['M']
     except KeyError:
         print "DynamoDB records are incomplete! {}".format(KeyError)
     else:
@@ -97,7 +97,7 @@ def lambda_handler(event, context):
                 SegmentID = '-1'
             else:
                 segments = os.path.splitext(filename)[0].split('SEGMENT')
-                SegmentID = ConversionID + segments[len(segments) - 1]
+                SegmentID = segments[len(segments) - 1] + "-" + ConversionID
                 print "preparing dynamo statement for SegmentID {}".format(SegmentID)
             writeattempts = 0
             while writeattempts < 3:
@@ -127,18 +127,24 @@ def lambda_handler(event, context):
 def segment(path):
     if path is not None:
         try:
-            print "Segmenting video file..."
+            print 'Breaking out audio from video file...'
             FilePath, Extension = os.path.splitext(path)
             f = ffmpy.FFmpeg(
                     executable='./ffmpeg/ffmpeg',
                     inputs={path : None},
-                    outputs={'{}.mp3'.format(FilePath): '-c:a mp3'})
+                    outputs={'{}.mp3'.format(FilePath): '-c:a mp3'}
+                    )
+            f.run()
+        except Exception as ffmpegerror:
+            raise Exception('Failure during audio breakout. {}'.format(ffmpegerror))
+        try:
+            print 'Segmenting video file...'
             ff = ffmpy.FFmpeg(
                     executable='./ffmpeg/ffmpeg',
                     inputs={path : None},
-                    outputs={'{}SEGMENT%d{}'.format(FilePath, Extension): '-acodec copy -f segment -vcodec copy -reset_timestamps 1 -map 0'})
-            f.run()
+                    outputs={'{}SEGMENT%d{}'.format(FilePath, Extension): '-acodec copy -f segment -vcodec copy -reset_timestamps 1 -map 0'}
+                    )
             ff.run()
             print "Segmentation complete"
         except Exception as ffmpegerror:
-            raise Exception('Failure during segmentation of video file')
+            raise Exception('Failure during segmentation of video file. {}'.format(ffmpegerror))
