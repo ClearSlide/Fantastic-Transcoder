@@ -26,14 +26,14 @@ Triggered by DynamoDB.FT_VideoConversions
 - Update SQS Status Queue with status of "Downloading"
 - Grabs video from S3
 - Update SQS Status Queue with status of "Ready to process"
-- POSSIBLY Break out audio?? see TODO
+- Breaks out Audio
 - Segment Video
-- Upload each segment to s3.VideoConversionsNG/Segmented/ConversionID/
+- Upload audio file and each video segment to s3.VideoConversionsNG/Segmented/ConversionID/
 - Log number of segments to DynamoDB.VideoConversions
 - Write relevant data to DynamoDB.FT_SegmentState (ConversionID, SegmentID, created, ConversionFormat.each)
 - Update SQS Status Queue with status of "Processing"
 
-## Lambda 2: Transcode
+## Lambda 2: Convert
 Triggered by DynamoDB.FT_SegmentState
 - If multiple formats are required, one row should be written per segment per ConversionFormat
 - Downloads Video
@@ -46,14 +46,14 @@ Triggered by DynamoDB.FT_SegmentState
 - if all segments have been converted, trigger concat step by writing to DynamoDB.FT_VideoConversions
 
 ## Lambda 3: Concatenate
-Triggered by DynamoDB.FT_VideoConversions.SegmentsComplete?
+Triggered by DynamoDB.FT_ConversionState
 - Update SQS Status Queue with status of "Saving"
 - One lambda triggered per format
 - Downloads all converted transcode streams from s3.VideoConversions/ConvertedSegments/ConversionID/Format{1,2,3}/
 - Makes sure all files are unique
 - Checks DynamoDB to ensure it has the right / right number of segments. If not, Retry download
 - Concatenates all segments into a single file
-- Downloads and munges audio if we broke it out earlier?
+- Downloads and munges audio
 - Places final transcoded file into s3 bucket
 - Deletes message from SQS queue
 - writes to DynamoDB.FT_VideoConversions.Complete
@@ -62,9 +62,8 @@ Triggered by DynamoDB.FT_VideoConversions.SegmentsComplete?
 ## DynamoDB Data structure
 There are three tables within DynamoDB. ConversionID is the shared key between the tables. It's a unique identifier for each individual video to be converted.
 - FT_VideoConversions triggers Conversions and contains basic data about the video file, such as the unique identifier and the number of retries. It also includes identifiers for the SQS messages
-- FT_ConversionState tracks state data about the overall conversion process.
-- FT_SegmentState tracks the conversion status of each segment
-
+- FT_SegmentState tracks the conversion status of each segment, and is responsible for triggering FT_Convert
+- FT_ConversionState tracks state data about the conversion process and is responsible for triggering FT_Concat
 
 ## Failure Cases:
 - Any lambda, if ffmpeg exits with status other than 1, trigger failed in dynamoDB & update SQS queue message visibility to 1
@@ -82,12 +81,9 @@ s3_url : https://bucket_name.s3.amazonaws.com/path/to/your/thing/video.mp4
 
 ## TODO for mvp
 - get upload endpoint up and dumping to correct bucket
-- add SQS integration for first and last step (currently triggers from bucket)
-- dynamoDB reads/writes added to individual functions
 - Concat step functional testing & triggering off of dynamoDB.
-- encoding parameters logic - allow people to specify destination codec in some manner.
-- add SQS access to IAM role in terraform
-- make bundler fully operational - should create python virtualenv as well as bundle lambda functions
+- encoding parameters logic - allow people to specify destination codec and desired formats in SQS message.
+- make bundler fully operational - should properly install our ffmpeg binary
 - Add installation/implementation guide
 - 100% code coverage
 - Jenkinsfile for automated deployment to multiple environments
