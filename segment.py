@@ -43,7 +43,7 @@ def lambda_handler(event, context):
         try:
             print "Cleaning working directory"
             for f in os.listdir('/tmp/'):
-                os.remove(f)
+                os.remove('/tmp/{}'.format(f))
         except Exception as e:
             raise Exception('Failed to clean temp dir')
         try:
