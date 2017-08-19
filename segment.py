@@ -111,17 +111,17 @@ def lambda_handler(event, context):
                                         'Completed': 0,
                                         'Filename': filename,
                                         'Path': Path,
-                                            'QueueMessageID': StatusQueueMessageID,
-                                            'RequestedFormats': RequestedFormats,
-                                            'SegmentID': SegmentID,
-                                        }
-                                    )
-                        formattedresponse = json.dumps(response, indent=4)
-                        print('PutItem succeeded: {}'.format(formattedresponse))
-                        break
-                    except Exception as DynamoError:
-                        raise Exception('Failure writing data to dynamodb for segment {}, attempt {} Exception: {}'.format(SegmentID, attempts, DynamoError))
-                        writeattempts += 1
+                                        'QueueMessageID': StatusQueueMessageID,
+                                        'RequestedFormats': RequestedFormats,
+                                        'SegmentID': SegmentID,
+                                    }
+                                )
+                    formattedresponse = json.dumps(response, indent=4)
+                    print('PutItem succeeded: {}'.format(formattedresponse))
+                    break
+                except Exception as DynamoError:
+                    raise Exception('Failure writing data to dynamodb for segment {}, attempt {} Exception: {}'.format(SegmentID, attempts, DynamoError))
+                    writeattempts += 1
 
 # ffmpy invocation that SEGMENTs the video into chunks
 def segment(path):
