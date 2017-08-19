@@ -28,14 +28,11 @@ def lambda_handler(event, context):
             Path = str(body['path'])
             Filename = body['fileName']
             RequestedFormats = body['sizeFormat']
-            if not Path:
-                Path = 'NULL'
-            elif Path is not 'NULL':
-                VideoURL = "https://{}.s3.amazonaws.com/{}{}".format(Bucket, Path, Filename)
-            elif Path is 'NULL':
-                VideoURL = "https://{}.s3.amazonaws.com/{}".format(Bucket, Filename)
+            if Path is None:
+                Path = 'null'
+                VideoURL = 'https://{}.s3.amazonaws.com/{}'.format(Bucket, Filename)
             else:
-                raise ValueError('Pathing issues! Path {} is in indeterminate form'.format(Path))
+                VideoURL = 'https://{}.s3.amazonaws.com/{}{}'.format(Bucket, Path, Filename)
             QueueMessageID = m.message_id
             epochnow = int(time.time())
             print "Bucket={} ConversionID={} Path={} Filename={} RequestedFormats={} VideoURL={} QueueMessageID={} epochnow={}".format(Bucket, ConversionID, Path, Filename, RequestedFormats, VideoURL, QueueMessageID, epochnow)
