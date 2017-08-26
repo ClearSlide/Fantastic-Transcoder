@@ -107,7 +107,7 @@ def concat(path):
         ff = ffmpy.FFmpeg(
             executable='./ffmpeg/ffmpeg',
             inputs={'{}targetlist.txt'.format(path) : '-f concat -safe 0'},
-            outputs={'{}DEAF.mp4'.format(path) : '-y -c copy -bsf:a aac_adtstoasc'}
+            outputs={'{}DEAF.mp4'.format(path) : '-loglevel 100 -y -c copy -bsf:a aac_adtstoasc'}
             )
         ff.run()
 
@@ -119,7 +119,7 @@ def concat(path):
                 '{}DEAF.mp4'.format(path) : [None],
                 '{}{}'.format(path, audio) : [None]
             },
-            outputs={file_to_upload : '-c:v copy -c:a aac -strict experimental'}
+            outputs={file_to_upload : '-loglevel 100 -c:v copy -c:a aac -strict experimental'}
         )
         file.close()
 

@@ -132,17 +132,18 @@ def segment(path):
             f = ffmpy.FFmpeg(
                     executable='./ffmpeg/ffmpeg',
                     inputs={path : None},
-                    outputs={'{}.mp3'.format(FilePath): '-c:a mp3'}
+                    outputs={'{}.mp3'.format(FilePath): '-loglevel 100 -c:a mp3'}
                     )
             f.run()
         except Exception as ffmpegerror:
             raise Exception('Failure during audio breakout. {}'.format(ffmpegerror))
+
         try:
             print 'Segmenting video file...'
             ff = ffmpy.FFmpeg(
                     executable='./ffmpeg/ffmpeg',
                     inputs={path : None},
-                    outputs={'{}SEGMENT%d{}'.format(FilePath, Extension): '-acodec copy -f segment -vcodec copy -reset_timestamps 1 -map 0'}
+                    outputs={'{}SEGMENT{}d{}'.format(FilePath, '%', Extension): '-loglevel 100 -acodec copy -f segment -vcodec copy -reset_timestamps 1 -map 0 -segment_format_options movflags=faststart'}
                     )
             ff.run()
             print "Segmentation complete"
