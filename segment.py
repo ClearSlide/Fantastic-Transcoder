@@ -4,6 +4,8 @@ s3 = boto3.resource('s3')
 dynamo = boto3.resource('dynamodb')
 table = dynamo.Table('FT_SegmentState')
 sqs = boto3.resource('sqs')
+# Uncomment for debug logging
+#boto3.set_stream_logger(name='botocore')
 
 # Triggered by write to FT_VideoConversions
 def lambda_handler(event, context):

@@ -48,7 +48,6 @@ resource "aws_dynamodb_table" "video_conversions" {
   attribute {
     name = "VideoURL"
     type = "S"
-
   }
 
   tags {

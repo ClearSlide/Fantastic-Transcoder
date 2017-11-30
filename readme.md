@@ -86,7 +86,7 @@ s3_url : https://bucket_name.s3.amazonaws.com/path/to/your/thing/video.mp4
 - make bundler fully operational - should properly install our ffmpeg binary
 - Add installation/implementation guide
 - 100% code coverage
-- Jenkinsfile for automated deployment to multiple environments
+- Jenkinsfile (or travis.yml) for automated deployment to multiple environments
 
 ## TODO after mvp
 - set up expiration time on s3 buckets

@@ -5,6 +5,8 @@ s3 = boto3.resource('s3')
 s3_client = boto3.client('s3')
 dynamo = boto3.resource('dynamodb')
 table = dynamo.Table('FT_SegmentState')
+# Uncomment for debug logging
+#boto3.set_stream_logger(name='botocore')
 
 # Triggered by write to FT_SegmentState
 def lambda_handler(event, context):
@@ -21,7 +23,7 @@ def lambda_handler(event, context):
     except KeyError:
         print "DynamoDB records are incomplete!"
     else:
-        #Figure out if someone's transcoding in the root part of the bucket because dynamoDB hates null strings
+        # Figure out if someone's transcoding in the root part of the bucket because dynamoDB hates null strings
         if Path == 'NULL':
             S3Path = '{}{}'.format(Filename, Extension)
         elif Path != 'NULL':

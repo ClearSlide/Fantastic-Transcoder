@@ -1,12 +1,13 @@
 import boto3, json, time
 
 def lambda_handler(event, context):
-
     sqs = boto3.resource('sqs')
     queue = sqs.get_queue_by_name(QueueName='FT_convert_queue')
     dynamo = boto3.resource('dynamodb')
     table = dynamo.Table('FT_VideoConversions')
     #statusqueue = sqs.Queue(sqs.get_queue_by_name(QueueName='FT_status_queue'))
+    # Uncomment for debug logging
+    #boto3.set_stream_logger(name='botocore')
 
     # Accept message from SQS
     messages = queue.receive_messages(
